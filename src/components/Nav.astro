@@ -1,0 +1,294 @@
+---
+import { emblemPath, PHASES } from '../lib/phase';
+import Icon from './Icon.astro';
+import Moon from './Moon.astro';
+import { projects, categoryOf } from '../data/projects';
+import wordmark from '../../brand/logo/oblune-wordmark-black.svg?raw';
+// The "blune" letters, outlined from Satoshi Bold, read from the brand file at build time.
+const BLUNE = wordmark.match(/<path fill="#141416" d="([^"]+)"/)?.[1] ?? '';
+const EMAIL = 'bharatkhanna117@gmail.com';
+
+interface Props {
+  /** The label the island starts with. */
+  label?: string;
+  lit?: number;
+}
+const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
+---
+<!-- The nav lives for the whole visit: pages are swapped beneath it. Every item sits on one 44px row. -->
+<header class="nav" data-nav data-deep="false" data-hidden="false">
+  <div class="nav__scrim" aria-hidden="true"></div>
+
+  <a class="nav__brand" href="/" aria-label="Oblune Studio, home" translate="no" data-nav-brand>
+    <svg class="nav__mark" viewBox="3 62 334 82" aria-hidden="true" data-nav-mark>
+      <path data-nav-moon transform="translate(40 104) rotate(24)" fill="currentColor" fill-rule="evenodd" d={emblemPath(0.75)} />
+      <path class="nav__letters" fill="currentColor" d={BLUNE} data-nav-letters />
+    </svg>
+  </a>
+
+  <div class="island" data-island data-open="false" data-live="false">
+    <div class="island__shape" aria-hidden="true"></div>
+    <div class="island__bar" data-island-bar>
+      <button class="island__toggle" type="button" aria-expanded="false" aria-controls="island-menu" data-island-toggle>
+        <span class="island__moon" aria-hidden="true">
+          <svg viewBox="-50 -50 100 100">
+            <circle class="island__track" r="46" />
+            <circle class="island__progress" r="46" pathLength="1" data-island-progress />
+            <path transform="scale(0.78) rotate(24)" fill="currentColor" fill-rule="evenodd" d={emblemPath(lit)} data-island-glyph />
+          </svg>
+        </span>
+        <span class="island__label"><span class="island__label-text" data-now>{label}</span></span>
+        <span class="sr-only">, menu</span>
+        <span class="island__plus" aria-hidden="true"><i></i><i></i></span>
+      </button>
+      <a class="island__go" href="/" data-island-go hidden data-cursor="Open">
+        <span class="island__go-label" data-island-go-label>Case study</span>
+        <span class="island__go-dot" aria-hidden="true"><Icon name="arrow-up-right" class="island__go-icon" /></span>
+      </a>
+    </div>
+
+    <div class="island__panel" id="island-menu" data-island-panel inert>
+      <div class="menu">
+        <nav class="menu__nav" aria-label="Primary">
+          <p class="menu__k meta">Work<span>{String(projects.length).padStart(2, '0')}</span></p>
+          <ol class="menu__list">
+            {projects.map((p, i) => (
+              <li class="menu__li">
+                <a class="menu__link" href={`/work/${p.slug}`} data-home-href={`/#${p.slug}`} data-away-href={`/work/${p.slug}`} data-menu-item={p.slug}>
+                  <span class="menu__n meta">{String(i + 1).padStart(2, '0')}</span>
+                  <span class="menu__glyph"><Moon lit={PHASES[p.phase].lit} size={16} /></span>
+                  <span class="menu__name"><span data-wave>{p.name}</span></span>
+                  <span class="menu__cat meta">{categoryOf(p).label}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+          <p class="menu__k meta">Studio</p>
+          <ol class="menu__list menu__list--studio">
+            <li class="menu__li"><a class="menu__link menu__link--small" href="/#work" data-menu-item="work"><span class="menu__name"><span data-wave>All the work</span></span></a></li>
+            <li class="menu__li"><a class="menu__link menu__link--small" href="/#practice" data-menu-item="practice"><span class="menu__name"><span data-wave>Practice</span></span></a></li>
+            <li class="menu__li"><a class="menu__link menu__link--small" href="/#contact" data-menu-item="contact"><span class="menu__name"><span data-wave>Work with me</span></span></a></li>
+          </ol>
+        </nav>
+
+        <aside class="menu__cards" aria-hidden="true" data-menu-cards>
+          <figure class="menu__card menu__card--studio" data-card="studio" data-on="true">
+            <div class="menu__card-moon"><Moon lit={0.75} size={64} /></div>
+            <figcaption>
+              <span class="menu__card-t">Oblune Studio</span>
+              <span class="menu__card-x">Apps, AI tools, websites and online stores, designed and built by one person.</span>
+              <span class="menu__card-m meta" data-menu-clock>New Delhi</span>
+            </figcaption>
+          </figure>
+          {projects.map((p) => (
+            <figure class="menu__card" data-card={p.slug} data-on="false" style={`--card-bg: ${p.stage.bg}; --card-ink: ${p.stage.tone === 'dark' ? '#ecece9' : '#141416'}`}>
+              <div class="menu__card-img"><img src={`${p.image.base}-1400.webp`} alt="" width="1400" height="875" loading="lazy" decoding="async" /></div>
+              <figcaption>
+                <span class="menu__card-t">{p.name}</span>
+                <span class="menu__card-x">{p.line}</span>
+                <span class="menu__card-m meta">{p.statusNote} · {p.context.label}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </aside>
+      </div>
+      <div class="menu__foot">
+        <button class="menu__small" type="button" data-copy={EMAIL}><span data-copy-state aria-live="polite">{EMAIL}</span><Icon name="copy" class="menu__small-icon" /></button>
+        <span class="menu__foot-end">
+          <a class="menu__small" href="https://github.com/waterduckpani" target="_blank" rel="noopener">GitHub<Icon name="arrow-up-right" class="menu__small-icon" /></a>
+          <button class="menu__small" type="button" data-sound-toggle aria-pressed="false"><span data-sound-label>Sound off</span></button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav__end">
+    <div class="nav__sound-wrap">
+      <button class="nav__hint" type="button" data-sound-start data-on="false" tabindex="-1" aria-hidden="true"><span class="nav__hint-dot"></span>Sound starts when you click</button>
+      <button class="nav__sound" type="button" data-sound-toggle aria-pressed="false" aria-label="Sound" data-cursor="Sound">
+        <span class="nav__bars" aria-hidden="true" data-sound-bars><i></i><i></i><i></i><i></i><i></i></span>
+      </button>
+    </div>
+    <a class="btn btn--solid nav__cta" href="/#contact" data-magnetic>
+      <span data-wave>Work with me</span>
+      <Icon name="arrow-up-right" class="btn__arrow" />
+    </a>
+  </div>
+</header>
+
+<style>
+  /* One row: every control is 44px tall, centred on the same line (22px + 16px from the top). */
+  .nav {
+    --row: 44px;
+    position: fixed; inset: 0 0 auto 0; z-index: var(--z-nav);
+    height: calc(var(--row) + 32px); padding-inline: var(--gutter);
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--ink);
+    pointer-events: none;
+  }
+  .nav > :not(.nav__scrim) { pointer-events: auto; }
+  /* Further down the page, a soft fade of the page colour keeps the copy from running under the nav. */
+  .nav__scrim {
+    position: absolute; inset: 0 0 -28px 0; pointer-events: none;
+    background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 82%, transparent) 45%, transparent 100%);
+    opacity: 0; transition: opacity 0.6s var(--ease-out);
+  }
+  .nav[data-deep='true'] .nav__scrim { opacity: 1; }
+
+  .nav__brand { position: relative; display: flex; align-items: center; height: var(--row); }
+  .nav__mark { height: 25px; width: auto; overflow: visible; }
+  /* deeper in, the wordmark folds into its moon, so the corner stays quiet */
+  .nav__letters { transition: opacity 0.5s var(--ease-out), translate 0.7s var(--ease-out); }
+  .nav[data-deep='true'] .nav__letters { opacity: 0; translate: -18px 0; }
+  .nav[data-hidden='true'] .nav__brand, .nav[data-hidden='true'] .nav__end { opacity: 0; translate: 0 -10px; pointer-events: none; }
+  .nav__brand, .nav__end { transition: opacity 0.5s var(--ease-out), translate 0.7s var(--ease-out); }
+
+  .nav__end { display: flex; align-items: center; gap: 10px; height: var(--row); margin-left: auto; }
+  .nav__cta { min-height: var(--row); height: var(--row); padding: 0 18px 0 22px; font-size: 14px; }
+
+  .nav__sound {
+    width: var(--row); height: var(--row); border-radius: 50%; border: 0; cursor: pointer;
+    background: color-mix(in srgb, var(--bg) 70%, transparent); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong);
+    display: grid; place-items: center; transition: box-shadow 0.3s, transform 0.2s var(--ease-out);
+  }
+  .nav__sound:hover { box-shadow: inset 0 0 0 1px var(--ink); }
+  .nav__sound:active { transform: scale(0.94); }
+  .nav__sound-wrap { position: relative; }
+  .nav__hint {
+    position: absolute; right: calc(100% + 10px); top: 50%; translate: 8px -50%;
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    height: 32px; padding: 0 12px; border: 0; border-radius: 999px; cursor: pointer;
+    background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 560;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s var(--ease-out), translate 0.7s var(--ease-out);
+  }
+  .nav__hint[data-on='true'] { opacity: 1; translate: 0 -50%; pointer-events: auto; }
+  .nav__hint-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: hint 1.4s var(--ease-in-out) infinite; }
+  @keyframes hint { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  .nav__bars { display: flex; align-items: center; gap: 2px; height: 14px; }
+  .nav__bars i { width: 2px; height: 100%; border-radius: 1px; background: currentColor; transform: scaleY(0.18); transform-origin: 50% 50%; }
+  :global(html[data-sound='false']) .nav__bars i { opacity: 0.45; }
+
+  /* ---------- the island ---------- */
+  .island {
+    --w: 220px;     /* the closed bar's width, measured from its content */
+    --ow: min(840px, calc(100vw - 2 * var(--gutter)));
+    --h: 480px;
+    position: absolute; left: 50%; top: 16px; translate: -50% 0;
+    width: var(--ow); height: var(--row);
+    color: #ecece9;
+  }
+  .island__shape {
+    position: absolute; left: 0; top: 0; width: 100%; height: min(640px, calc(100svh - 32px));
+    background: #141416;
+    clip-path: inset(0 calc(50% - var(--w) / 2) calc(100% - var(--row)) calc(50% - var(--w) / 2) round 22px);
+    transition: clip-path 0.8s cubic-bezier(0.2, 1.15, 0.3, 1);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
+  .island[data-open='true'] .island__shape { clip-path: inset(0 0 calc(100% - var(--h)) 0 round 28px); }
+
+  .island__bar {
+    position: absolute; left: 50%; top: 0; translate: -50% 0; height: var(--row);
+    display: flex; align-items: center; gap: 0; white-space: nowrap;
+  }
+  .island__toggle {
+    height: var(--row); display: flex; align-items: center; gap: 10px; padding: 0 16px 0 7px;
+    border: 0; background: none; color: inherit; cursor: pointer; border-radius: 22px;
+  }
+  .island__moon { width: 30px; height: 30px; display: grid; place-items: center; }
+  .island__moon svg { width: 30px; height: 30px; overflow: visible; }
+  .island__track { fill: none; stroke: currentColor; stroke-opacity: 0.2; stroke-width: 3.5; }
+  .island__progress { fill: none; stroke: currentColor; stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); }
+  .island__label { display: inline-grid; overflow: hidden; height: 1.3em; font-size: 14px; font-weight: 560; letter-spacing: -0.01em; }
+  .island__label-text { display: block; }
+  .island__plus { position: relative; width: 10px; height: 10px; margin-left: 4px; opacity: 0.7; }
+  .island__plus i { position: absolute; left: 0; top: 50%; width: 10px; height: 1.5px; margin-top: -0.75px; background: currentColor; border-radius: 1px; transition: rotate 0.5s var(--ease-out); }
+  .island__plus i:last-child { rotate: 90deg; }
+  .island[data-open='true'] .island__plus i:first-child { rotate: 45deg; }
+  .island[data-open='true'] .island__plus i:last-child { rotate: 135deg; }
+
+  /* the way out of where you are: its own light pill, separated from the label by a hairline */
+  .island__go {
+    position: relative; height: 34px; margin: 0 5px 0 4px; padding: 0 4px 0 14px; border-radius: 17px;
+    background: #ecece9; color: #141416;
+    display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 620; letter-spacing: -0.005em;
+    transition: background-color 0.3s, opacity 0.35s, scale 0.6s cubic-bezier(0.2, 1.4, 0.3, 1);
+  }
+  .island__go::before { content: ''; position: absolute; left: -5px; top: 9px; bottom: 9px; width: 1px; background: rgb(236 236 233 / 0.2); }
+  .island__go[hidden] { display: none; }
+  .island__go:hover { background: #ffffff; }
+  .island__go-dot { width: 26px; height: 26px; border-radius: 50%; background: #141416; color: #ecece9; display: grid; place-items: center; transition: rotate 0.5s var(--ease-out); }
+  .island__go:hover .island__go-dot { rotate: 45deg; }
+  :global(.island__go-icon) { width: 13px; height: 13px; }
+  .island[data-open='true'] .island__go { opacity: 0; scale: 0.8; pointer-events: none; }
+  .island__go.is-in { animation: go-in 0.7s cubic-bezier(0.2, 1.4, 0.3, 1) both; }
+  @keyframes go-in { from { opacity: 0; scale: 0.6; } }
+
+  /* ---------- the menu ---------- */
+  .island__panel {
+    position: absolute; left: 0; right: 0; top: calc(var(--row) + 6px); padding: 8px 14px 14px;
+    opacity: 0; pointer-events: none; visibility: hidden;
+    transition: opacity 0.3s var(--ease-out), visibility 0s 0.3s;
+  }
+  .island[data-open='true'] .island__panel { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity 0.4s var(--ease-out) 0.1s; }
+  .menu { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; }
+  .menu__k { display: flex; justify-content: space-between; padding: 12px 10px 6px; color: rgb(236 236 233 / 0.45); border-bottom: 1px solid rgb(236 236 233 / 0.1); margin-bottom: 4px; }
+  .menu__list { display: grid; }
+  .menu__list--studio { grid-template-columns: repeat(3, auto); justify-content: start; gap: 2px; }
+  .menu__link {
+    display: grid; grid-template-columns: 22px 20px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 12px;
+    font-size: 21px; font-weight: 560; letter-spacing: -0.03em; line-height: 1.15;
+    transition: background-color 0.3s, padding 0.5s var(--ease-out);
+  }
+  .menu__link--small { display: inline-flex; font-size: 15px; letter-spacing: -0.01em; padding: 8px 10px; }
+  .menu__link:hover, .menu__link:focus-visible, .menu__link[data-hot='true'] { background: rgb(236 236 233 / 0.08); }
+  .menu__link:hover .menu__name, .menu__link[data-hot='true'] .menu__name { translate: 4px 0; }
+  .menu__name { transition: translate 0.5s var(--ease-out); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .menu__n, .menu__cat { color: rgb(236 236 233 / 0.45); }
+  .menu__glyph { display: grid; place-items: center; color: #ecece9; }
+  .menu__link[aria-current='true'] .menu__n::before { content: '•'; margin-right: 2px; }
+
+  .menu__cards { position: relative; margin-top: 12px; border-radius: 18px; overflow: hidden; background: #1c1c20; min-height: 300px; }
+  .menu__card { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr; align-content: start; margin: 0; background: var(--card-bg, #1c1c20); color: var(--card-ink, #ecece9);
+    clip-path: inset(0 0 100% 0); transition: clip-path 0.7s cubic-bezier(0.7, 0, 0.2, 1); }
+  .menu__card[data-on='true'] { clip-path: inset(0 0 0 0); z-index: 1; }
+  /* the stills are 16:10 compositions on the day surface: shown whole, on that surface, never cropped to fit */
+  .menu__card-img { position: relative; overflow: hidden; aspect-ratio: 1400 / 875; margin: 8px 8px 0; border-radius: 12px; background: #e9e9e6; }
+  .menu__card-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.14); transition: transform 1.2s var(--ease-out); }
+  .menu__card[data-on='true'] .menu__card-img img { transform: scale(1.04); }
+  .menu__card figcaption { display: grid; align-content: start; gap: 6px; padding: 16px 18px 18px; }
+  .menu__card-t { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .menu__card-x { font-size: 13px; line-height: 1.35; opacity: 0.75; }
+  .menu__card-m { color: inherit; opacity: 0.55; font-size: 11px; margin-top: 4px; }
+  .menu__card--studio { background: linear-gradient(160deg, #26262b, #151518); }
+  .menu__card-moon { display: grid; place-items: center; color: #ecece9; aspect-ratio: 1400 / 875; margin: 8px 8px 0; border-radius: 12px; background: radial-gradient(70% 90% at 60% 40%, #2c2c31, #18181b); }
+
+  .menu__foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 10px 0; border-top: 1px solid rgb(236 236 233 / 0.12); }
+  .menu__foot-end { display: flex; gap: 18px; }
+  .menu__small { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 560; background: none; border: 0; color: inherit; cursor: pointer; min-height: 32px; padding: 0; opacity: 0.8; transition: opacity 0.3s; }
+  .menu__small:hover { opacity: 1; }
+  :global(.menu__small-icon) { width: 13px; height: 13px; }
+
+  @media (max-width: 860px) {
+    .nav { --row: 44px; height: 68px; }
+    .nav__cta { display: none; }
+    .nav__mark { height: 21px; }
+    .nav__brand { display: none; }
+    .island { left: var(--gutter); translate: 0 0; top: 12px; --ow: calc(100vw - 2 * var(--gutter) - 54px); }
+    .island__shape { clip-path: inset(0 calc(100% - var(--w)) calc(100% - var(--row)) 0 round 22px); }
+    .island[data-open='true'] .island__shape { clip-path: inset(0 0 calc(100% - var(--h)) 0 round 24px); }
+    .island__bar { left: 0; translate: 0 0; }
+    .island__go { display: none; }
+    .menu { grid-template-columns: 1fr; }
+    .menu__cards { display: none; }
+    .menu__link { font-size: 18px; padding: 6px 10px; }
+    .menu__k { padding-top: 8px; }
+    .island__shape { height: calc(100svh - 24px); }
+    .island__panel { max-height: calc(100svh - 84px); overflow-y: auto; overscroll-behavior: contain; }
+    .menu__list--studio { grid-template-columns: 1fr; }
+    .menu__foot { flex-wrap: wrap; }
+    .nav__hint { right: 0; top: calc(100% + 8px); translate: 0 -6px; }
+    .nav__hint[data-on='true'] { translate: 0 0; }
+  }
+</style>

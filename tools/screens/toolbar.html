@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- A quiet browser toolbar (1440x44 CSS) for desktop captures. ?url=example.com -->
+<html><head><meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1440px; height: 44px; overflow: hidden; }
+  body { font-family: -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; background: #efefed; border-bottom: 1px solid #dcdcd8; display: flex; align-items: center; padding: 0 16px; position: relative; }
+  .dots { display: flex; gap: 8px; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: #d2d2ce; display: block; }
+  .url { position: absolute; left: 50%; transform: translateX(-50%); height: 28px; min-width: 360px; padding: 0 16px; border-radius: 8px; background: #e4e4e1; display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; color: #3b3b3e; }
+  .url svg { width: 12px; height: 12px; color: #6d6d71; }
+</style></head>
+<body><div class="dots"><i></i><i></i><i></i></div><div class="url" id="url"></div>
+<script type="module">
+  const url = new URLSearchParams(location.search).get('url') || '';
+  const lock = (await (await fetch('/node_modules/@phosphor-icons/core/assets/fill/lock-simple-fill.svg')).text()).replace('<svg ', '<svg fill="currentColor" ');
+  document.getElementById('url').innerHTML = lock + `<span>${url}</span>`;
+  await document.fonts.ready; window.__done = true;
+</script></body></html>

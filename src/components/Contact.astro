@@ -1,0 +1,195 @@
+---
+import Icon from './Icon.astro';
+import wordmark from '../../brand/logo/oblune-wordmark-black.svg?raw';
+import { emblemPath } from '../lib/phase';
+
+const email = 'bharatkhanna117@gmail.com';
+const BLUNE = wordmark.match(/<path fill="#141416" d="([^"]+)"/)?.[1] ?? '';
+---
+<footer id="contact" class="contact" data-contact aria-labelledby="contact-title">
+  <div class="contact__dusk" data-dusk>
+    <p class="contact__whisper" data-whisper>Every product here<br />started as a <em>sliver.</em></p>
+  </div>
+
+  <div class="contact__night">
+    <button class="contact__moon" type="button" data-moon-anchor="footer" data-moon-cycle aria-label="Play the moon’s phases" data-cursor="Play"></button>
+
+    <div class="container contact__inner">
+      <h2 class="contact__title" id="contact-title" data-reveal>Have a product <em>in mind?</em></h2>
+
+      <!-- Set data-endpoint to a form service URL (Formspree, Web3Forms) to send in-page.
+           Without one, the form opens the visitor's mail app with everything written out. -->
+      <form class="brief" data-brief data-endpoint="" data-to={email} novalidate data-reveal>
+        <p class="brief__sentence">
+          <span>Hi Bharat, I’m</span>
+          <label class="brief__field brief__field--name">
+            <span class="sr-only">Your name</span>
+            <input name="name" type="text" autocomplete="name" required placeholder="your name" size="9" maxlength="60" />
+          </label>
+          <span>and I’m building</span>
+          <span class="brief__kinds" role="radiogroup" aria-label="What you are building">
+            {['an iOS app', 'a website', 'an online store', 'an AI tool', 'something else'].map((k, i) => (
+              <label class="brief__kind"><input type="radio" name="kind" value={k} required={i === 0} /><span data-wave>{k}</span></label>
+            ))}
+          </span><span>. In a line, it’s</span>
+          <label class="brief__field brief__field--idea">
+            <span class="sr-only">Your idea, in a line</span>
+            <input name="idea" type="text" required placeholder="a thing that…" size="16" maxlength="200" />
+          </label><span>. You can reach me at</span>
+          <label class="brief__field brief__field--email">
+            <span class="sr-only">Your email address</span>
+            <input name="email" type="email" autocomplete="email" required placeholder="you@email.com" size="14" maxlength="120" />
+          </label><span>.</span>
+        </p>
+        <label class="brief__trap" aria-hidden="true">Company<input name="company" type="text" tabindex="-1" autocomplete="off" /></label>
+
+        <ul class="brief__errors" data-brief-errors aria-live="polite"></ul>
+
+        <div class="brief__actions">
+          <button class="btn btn--solid brief__send" type="submit" data-magnetic>
+            <span data-wave>Send it</span>
+            <Icon name="arrow-up-right" class="btn__arrow" />
+          </button>
+          <button class="contact__email" type="button" data-copy={email} data-cursor="Copy">
+            <span class="contact__or">or write to</span>
+            <span class="contact__address">{email}</span>
+            <span class="contact__hint meta" data-copy-state aria-live="polite">Click to copy</span>
+          </button>
+        </div>
+        <p class="brief__status" data-brief-status role="status"></p>
+      </form>
+    </div>
+
+    <div class="contact__mark" data-chrome-mark aria-hidden="true">
+      <svg viewBox="3 62 334 82" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="mark-chrome" gradientUnits="userSpaceOnUse" x1="0" y1="40" x2="365" y2="150" data-mark-gradient>
+            <stop offset="0" stop-color="#5d6068" />
+            <stop offset="0.34" stop-color="#2a2c31" />
+            <stop offset="0.5" stop-color="#f4f5f7" data-mark-hi />
+            <stop offset="0.64" stop-color="#6f737a" />
+            <stop offset="1" stop-color="#3a3d43" />
+          </linearGradient>
+        </defs>
+        <path transform="translate(40 104) rotate(24)" fill="url(#mark-chrome)" fill-rule="evenodd" d={emblemPath(1)} />
+        <path fill="url(#mark-chrome)" d={BLUNE} />
+      </svg>
+    </div>
+
+    <div class="container contact__base">
+      <p class="meta">© 2026 Oblune Studio</p>
+      <p class="meta contact__tonight" data-tonight>
+        <svg viewBox="-40 -40 80 80" width="14" height="14" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" data-tonight-glyph /></svg>
+        <span data-tonight-text>The moon tonight</span>
+      </p>
+      <ul class="contact__social">
+        <li><a href="https://github.com/waterduckpani" target="_blank" rel="noopener"><span data-wave>GitHub</span></a></li>
+        <li><a href="#top" data-top><span data-wave>Back to top</span></a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .contact { position: relative; }
+  .contact__dusk {
+    position: relative; z-index: 3;
+    height: 110vh; height: 110svh;
+    display: grid; place-items: center;
+  }
+  .contact__whisper {
+    font-size: clamp(40px, 6vw, 112px); line-height: 0.95; letter-spacing: -0.055em; font-weight: 520;
+    text-align: center; color: var(--ink);
+  }
+  .contact__whisper em { font-weight: 320; }
+
+  .contact__night { position: relative; padding-top: clamp(40px, 6vw, 100px); overflow: clip; }
+  .contact__moon {
+    position: absolute; z-index: 2;
+    width: min(30vw, 50vh); aspect-ratio: 1;
+    right: 10vw; top: 0;
+    border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer;
+  }
+  .contact__moon:focus-visible { outline-offset: 14px; }
+  .contact__inner { position: relative; z-index: 3; padding-top: clamp(40px, 5vw, 80px); }
+  .contact__title { font-size: clamp(54px, 8.6vw, 164px); line-height: 0.92; letter-spacing: -0.06em; font-weight: 560; max-width: 8em; margin-left: -0.04em; padding-bottom: 0.06em; }
+  .contact__title em { font-weight: 330; }
+
+  .brief { margin-top: clamp(40px, 5vw, 80px); max-width: min(1180px, 62vw); }
+  @media (max-width: 860px) { .brief { max-width: none; } }
+  .brief__sentence {
+    font-size: clamp(22px, 2.6vw, 44px); line-height: 1.55; letter-spacing: -0.035em; font-weight: 440;
+    color: var(--ink-2);
+  }
+  .brief__sentence > span { color: var(--ink-2); }
+  .brief__field { display: inline-block; position: relative; vertical-align: baseline; margin: 0 0.12em; }
+  .brief__field input {
+    font: inherit; letter-spacing: inherit; color: var(--ink);
+    background: transparent; border: 0; border-bottom: 1.5px solid var(--line-strong);
+    padding: 0 0.1em 0.04em; border-radius: 0; outline: none;
+    field-sizing: content; min-width: 4ch; max-width: 70vw;
+    transition: border-color 0.3s;
+  }
+  .brief__field input::placeholder { color: var(--ink-3); opacity: 1; }
+  .brief__field input:focus-visible { border-bottom-color: var(--ink); }
+  .brief__field input[aria-invalid='true'] { border-bottom-color: #e0887a; }
+  .brief__kinds { display: inline; }
+  .brief__kind { display: inline-block; margin: 0.08em 0.14em; cursor: pointer; }
+  .brief__kind input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .brief__kind > span {
+    display: inline-block; padding: 0.02em 0.42em 0.06em; border-radius: 999px;
+    box-shadow: inset 0 0 0 1.5px var(--line-strong); color: var(--ink);
+    transition: background-color 0.35s, color 0.35s, box-shadow 0.35s;
+  }
+  .brief__kind:hover > span { box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .brief__kind input:checked + span { background: var(--ink); color: var(--bg); box-shadow: none; }
+  .brief__kind input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .brief__trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .brief__errors { margin-top: 18px; color: #f0a293; font-size: 15px; display: grid; gap: 4px; }
+  .brief__errors:empty { display: none; }
+  .brief__actions { margin-top: clamp(28px, 3.5vw, 52px); display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+  .brief__status { margin-top: 20px; color: var(--ink); font-size: clamp(17px, 1.3vw, 21px); max-width: 52ch; }
+  .brief__status:empty { display: none; }
+  .brief[data-sent='true'] .brief__sentence, .brief[data-sent='true'] .brief__actions { opacity: 0.35; pointer-events: none; transition: opacity 0.8s; }
+
+  .contact__email {
+    border: 0; background: none; padding: 0; cursor: pointer; text-align: left;
+    display: grid; gap: 4px; color: var(--ink);
+  }
+  .contact__or { font-size: 13px; color: var(--ink-2); }
+  .contact__address {
+    font-size: clamp(17px, 1.4vw, 22px); font-weight: 520; letter-spacing: -0.02em;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; padding-bottom: 3px;
+    transition: background-size 0.6s var(--ease-out);
+    overflow-wrap: anywhere;
+  }
+  .contact__email:hover .contact__address { background-size: 0% 1px; background-position: 100% 100%; }
+  .contact__hint { color: var(--ink-2); transition: color 0.3s; }
+  .contact__email[data-copied='true'] .contact__hint { color: var(--ink); }
+
+  .contact__mark {
+    position: relative; z-index: 3;
+    margin-top: clamp(100px, 13vw, 220px);
+    padding-inline: var(--gutter);
+  }
+  .contact__mark svg { width: 100%; height: auto; display: block; }
+
+  .contact__base {
+    position: relative; z-index: 3;
+    margin-top: clamp(24px, 3vw, 48px);
+    padding-block: 18px 26px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  .contact__base .meta { color: var(--ink-2); }
+  .contact__tonight { display: inline-flex; align-items: center; gap: 8px; }
+  .contact__tonight svg { flex: none; color: var(--ink); }
+  .contact__social { display: flex; gap: 28px; font-size: 14px; font-weight: 560; }
+  .contact__social a { display: inline-block; min-height: 44px; line-height: 44px; }
+
+  @media (max-width: 860px) {
+    .contact__dusk { height: 80svh; }
+    .contact__moon { position: relative; right: auto; top: auto; display: block; margin: 0 auto 8px; width: min(56vw, 30svh); }
+    .contact__base { flex-direction: column; align-items: flex-start; gap: 4px; }
+  }
+</style>

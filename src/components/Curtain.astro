@@ -1,0 +1,49 @@
+---
+// Between pages (and on long jumps within one), night crosses the screen like the terminator
+// crossing the moon: it carries the name of where you are going, and a moon that waxes as it waits.
+---
+<div class="curtain" data-curtain data-on="false" aria-hidden="true">
+  <div class="curtain__sheet" data-curtain-sheet>
+    <div class="curtain__inner">
+      <svg class="curtain__moon" viewBox="-50 -50 100 100">
+        <circle class="curtain__ring" r="47" />
+        <circle class="curtain__arc" r="47" pathLength="1" data-curtain-arc />
+        <path transform="scale(0.78) rotate(24)" fill="currentColor" fill-rule="evenodd" data-curtain-moon />
+      </svg>
+      <p class="curtain__kicker" data-curtain-kicker></p>
+      <p class="curtain__title" data-curtain-title></p>
+    </div>
+  </div>
+</div>
+<p class="sr-only" role="status" aria-live="polite" data-route-status></p>
+
+<style>
+  .curtain { position: fixed; inset: 0; z-index: 36; pointer-events: none; visibility: hidden; }
+  .curtain[data-on='true'] { visibility: visible; pointer-events: auto; cursor: progress; }
+  .curtain__sheet {
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 70% 30%, #1d1d21 0%, #111113 55%, #0b0b0d 100%);
+    color: #ecece9;
+    clip-path: ellipse(0% 105% at 100% 50%);
+    will-change: clip-path;
+  }
+  .curtain__inner {
+    position: absolute; left: var(--gutter); right: var(--gutter); bottom: clamp(28px, 7vh, 72px);
+    display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: clamp(16px, 2vw, 28px); align-items: end;
+  }
+  .curtain__moon { grid-row: 1 / span 2; width: clamp(44px, 5.4vw, 84px); height: auto; overflow: visible; margin-bottom: 0.4vw; }
+  .curtain__ring { fill: none; stroke: currentColor; stroke-opacity: 0.18; stroke-width: 2; }
+  .curtain__arc { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); }
+  .curtain__kicker {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.02em; color: #8a8b90;
+    overflow: hidden; white-space: nowrap;
+  }
+  .curtain__title {
+    font-size: clamp(56px, 11vw, 210px); line-height: 0.92; letter-spacing: -0.065em; font-weight: 620;
+    white-space: nowrap; overflow: hidden; padding: 0.02em 0.06em 0.1em 0; margin-left: -0.04em;
+  }
+  .curtain__title :global(.c), .curtain__kicker :global(.c) { display: inline-block; will-change: transform; }
+  @media (max-width: 860px) {
+    .curtain__title { font-size: clamp(44px, 15vw, 96px); white-space: normal; }
+  }
+</style>

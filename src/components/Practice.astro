@@ -1,0 +1,241 @@
+---
+import Icon from './Icon.astro';
+import Moon from './Moon.astro';
+import { PHASES } from '../lib/phase';
+import { bySlug } from '../data/projects';
+
+// Four disciplines, four quarters of one moon: by the last, it is full. That is the point of the
+// section: one person, the whole product. Each discipline names the work where you can see it.
+const disciplines = [
+  { name: 'Product design', text: 'Research, flows, interface and the design system, carried all the way into the code as tokens.', uses: ['mull', 'bite', 'power-policy'] },
+  { name: 'Engineering', text: 'iOS apps in Flutter, the web in Next.js and Astro, backends on Supabase and Postgres, and the odd globe drawn by hand.', uses: ['stocky', 'mull', 'power-policy'] },
+  { name: 'AI systems', text: 'LLM pipelines, recommendation, on-device speech, and agents with real guardrails.', uses: ['alfard', 'haqdar', 'article'] },
+  { name: 'Commerce', text: 'Shopify stores for brands: the theme, the catalogue, payments and the small things that turn a visit into an order.', uses: ['viraj-mahajan'] },
+];
+const notes = [
+  { k: 'Recognition', v: 'Finalist, USAII Global AI Hackathon 2026, with Haqdar' },
+  { k: 'Open source', v: 'Alfard on PyPI and npm, with contributors I have never met' },
+  { k: 'Clients', v: 'Freelance since 2025: Shopify builds for fashion brands' },
+  { k: 'Based in', v: 'New Delhi, working with anyone, anywhere' },
+];
+const stack = ['Flutter', 'Next.js', 'Astro', 'Shopify', 'Supabase', 'Postgres', 'pgvector', 'FastAPI', 'Python', 'Whisper on MLX', 'Ollama', 'three.js', 'Razorpay', 'Resend', 'Telegram'];
+// the four quarter arcs around the moon, clockwise from the top
+const R = 55;
+const arc = (i: number) => {
+  const a0 = (-90 + i * 90 + 4) * (Math.PI / 180), a1 = (-90 + (i + 1) * 90 - 4) * (Math.PI / 180);
+  return `M${(Math.cos(a0) * R).toFixed(2)} ${(Math.sin(a0) * R).toFixed(2)}A${R} ${R} 0 0 1 ${(Math.cos(a1) * R).toFixed(2)} ${(Math.sin(a1) * R).toFixed(2)}`;
+};
+const label = (i: number) => {
+  const a = (-90 + i * 90 + 45) * (Math.PI / 180);
+  return { x: Math.cos(a) * (R + 7), y: Math.sin(a) * (R + 7) };
+};
+---
+<section id="practice" class="practice" aria-labelledby="practice-title" data-practice data-q="0">
+  <div class="container practice__top">
+    <p class="practice__kicker meta" data-reveal>Practice<span>/</span>How the work gets made</p>
+    <h2 class="practice__title" id="practice-title" data-reveal>One person, <em>the whole product.</em></h2>
+    <p class="practice__lede" data-reveal>
+      Most products pass from a designer to a developer, and something gets lost on the way. At Oblune
+      the same person sketches the flows, sets the type and writes the code, for my own products and for clients.
+      Each discipline is a quarter of the moon.
+    </p>
+  </div>
+
+  <div class="container practice__body">
+    <div class="practice__stage-wrap">
+      <div class="practice__stage" aria-hidden="true">
+        <svg class="practice__moon" viewBox="-66 -66 132 132">
+          <defs>
+            <radialGradient id="pr-steel" cx="0.66" cy="0.3" r="0.8">
+              <stop offset="0" stop-color="#ffffff" />
+              <stop offset="0.28" stop-color="#e3e5e9" />
+              <stop offset="0.62" stop-color="#aeb2b9" />
+              <stop offset="0.86" stop-color="#7c8088" />
+              <stop offset="1" stop-color="#5d6068" />
+            </radialGradient>
+            <linearGradient id="pr-band" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0.3" stop-color="#fff" stop-opacity="0" />
+              <stop offset="0.5" stop-color="#fff" stop-opacity="0.55" />
+              <stop offset="0.7" stop-color="#fff" stop-opacity="0" />
+            </linearGradient>
+            <radialGradient id="pr-limb" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0.7" stop-color="#000" stop-opacity="0" />
+              <stop offset="1" stop-color="#000" stop-opacity="0.22" />
+            </radialGradient>
+            <filter id="pr-soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.6" /></filter>
+            <clipPath id="pr-disc"><circle r="48" /></clipPath>
+          </defs>
+          <g transform="rotate(-24)">
+            <circle r="48" fill="url(#pr-steel)" />
+            <g clip-path="url(#pr-disc)">
+              <rect x="-60" y="-60" width="120" height="120" fill="url(#pr-band)" class="practice__glint" data-practice-glint />
+              <circle r="51" cx="-12" fill="#1a1b1f" filter="url(#pr-soft)" data-practice-shadow />
+            </g>
+            <circle r="48" fill="url(#pr-limb)" />
+          </g>
+          <circle class="practice__track" r={R} />
+          {disciplines.map((_, i) => <path class="practice__arc" d={arc(i)} data-arc={i} />)}
+          {disciplines.map((_, i) => { const l = label(i); return <text class="practice__arc-n" x={l.x} y={l.y} text-anchor="middle" dominant-baseline="middle" data-arc-n={i}>{String(i + 1).padStart(2, '0')}</text>; })}
+        </svg>
+        <p class="practice__read"><span class="practice__pct" data-practice-pct>25</span><span class="practice__unit">%</span></p>
+        <p class="practice__cap meta"><span data-practice-cap>of the whole product · Product design</span></p>
+      </div>
+    </div>
+
+    <ol class="practice__list">
+      {disciplines.map((d, i) => (
+        <li class="practice__row" data-practice-row={i} data-reveal>
+          <span class="practice__dot" data-line-step aria-hidden="true"></span>
+          <p class="practice__num meta"><span>{String(i + 1).padStart(2, '0')}</span> Quarter {i + 1} of 4</p>
+          <h3 class="practice__name">{d.name}</h3>
+          <p class="practice__text">{d.text}</p>
+          <ul class="practice__uses" aria-label={`Where to see ${d.name.toLowerCase()}`}>
+            {d.uses.map((s) => { const p = bySlug(s); return (
+              <li><a class="practice__use" href={`#${p.slug}`} data-cursor="View"><Moon lit={PHASES[p.phase].lit} size={14} /><span data-wave>{p.name}</span></a></li>
+            ); })}
+          </ul>
+        </li>
+      ))}
+    </ol>
+  </div>
+
+  <dl class="container practice__notes" data-reveal>
+    {notes.map((n) => (<div class="practice__note"><dt class="meta">{n.k}</dt><dd>{n.v}</dd></div>))}
+  </dl>
+
+  <div class="container practice__code">
+    <a class="practice__gh" href="https://github.com/waterduckpani" target="_blank" rel="noopener" data-cursor="Code">
+      <Icon name="github" class="practice__gh-icon" />
+      <span data-wave>github.com/waterduckpani</span>
+      <Icon name="arrow-up-right" class="practice__gh-arrow" />
+    </a>
+    <p class="practice__gh-note">The source for most of the products on this page.</p>
+  </div>
+
+  <div class="practice__marquee" aria-label={`Tools: ${stack.join(', ')}`}>
+    <div class="practice__track" data-marquee aria-hidden="true">
+      {[0, 1].map(() => (
+        <span class="practice__set">
+          {stack.map((s) => (<><span class="practice__tool">{s}</span><svg class="practice__sep" viewBox="-40 -40 80 80"><circle r="12" fill="currentColor" /></svg></>))}
+        </span>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .practice { position: relative; padding-top: clamp(140px, 16vw, 260px); }
+  .practice__top {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 16px;
+    position: relative; z-index: 3;
+  }
+  .practice__kicker { grid-column: 1 / -1; color: var(--ink); }
+  .practice__kicker span { margin: 0 0.7em; color: var(--ink-3); }
+  .practice__title {
+    grid-column: 1 / span 9;
+    font-size: clamp(48px, 7vw, 132px); line-height: 0.9; letter-spacing: -0.058em; font-weight: 560; margin-left: -0.04em;
+  }
+  .practice__title em { font-weight: 340; }
+  .practice__lede { grid-column: 1 / span 6; margin-top: 12px; color: var(--ink-2); font-size: clamp(17px, 1.25vw, 21px); max-width: 46ch; }
+
+  /* ---------- the moon that fills by quarters, beside the four disciplines ---------- */
+  .practice__body {
+    position: relative; margin-top: clamp(40px, 5vw, 90px);
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter);
+    --stage-h: min(78vh, 46vw);
+  }
+  .practice__stage-wrap { grid-column: 1 / span 6; grid-row: 1; position: relative; }
+  .practice__stage { position: sticky; top: calc((100vh - var(--stage-h)) / 2); height: var(--stage-h); display: grid; place-items: center; }
+  .practice__moon { width: min(100%, calc(var(--stage-h) * 0.86)); height: auto; overflow: visible; }
+  :global([data-practice-shadow]) { transition: cx 1.2s cubic-bezier(0.65, 0, 0.35, 1); }
+  .practice__glint { transition: transform 1.4s cubic-bezier(0.65, 0, 0.35, 1); }
+  .practice__track { fill: none; stroke: var(--ink); stroke-opacity: 0.12; stroke-width: 0.25; }
+  .practice__arc { fill: none; stroke: var(--ink); stroke-opacity: 0.18; stroke-width: 0.9; stroke-linecap: round; transition: stroke-opacity 0.6s, stroke-width 0.6s var(--ease-out); }
+  :global(.practice__arc[data-on='true']) { stroke-opacity: 1; stroke-width: 1.3; }
+  .practice__arc-n { font-family: var(--mono); font-size: 3.2px; fill: var(--ink-3); transition: fill 0.5s; }
+  :global(.practice__arc-n[data-on='true']) { fill: var(--ink); }
+  .practice__read { position: absolute; left: 0; bottom: 4%; display: flex; align-items: baseline; font-family: var(--mono); font-weight: 300; letter-spacing: -0.07em; line-height: 0.9; }
+  .practice__pct { font-size: clamp(48px, 5vw, 96px); font-variant-numeric: tabular-nums; }
+  .practice__unit { font-size: clamp(24px, 2.4vw, 44px); margin-left: 0.08em; }
+  .practice__cap { position: absolute; left: 0; bottom: calc(4% - 22px); color: var(--ink-2); }
+  .practice[data-q='3'] .practice__cap { color: var(--ink); }
+
+  .practice__list { grid-column: 7 / -1; grid-row: 1; position: relative; z-index: 3; }
+  .practice__row {
+    position: relative; min-height: calc(var(--stage-h) * 0.62);
+    padding: 0 0 clamp(32px, 4vw, 64px) 12px;
+    color: var(--ink-3); transition: color 0.6s var(--ease-out);
+  }
+  .practice__row:first-child { padding-top: calc(var(--stage-h) * 0.18); }
+  .practice__row:last-child { min-height: calc(var(--stage-h) * 0.7); }
+  .practice__row[data-active='true'] { color: var(--ink); }
+  .practice__dot {
+    position: absolute; left: calc(var(--gutter) * -0.5 - 6.5px); top: calc(var(--dot-top, 0px) + 0.9em);
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--bg); box-shadow: inset 0 0 0 1.25px var(--line-strong);
+    transition: background-color 0.4s, box-shadow 0.4s, transform 0.5s var(--ease-out);
+  }
+  .practice__row:first-child .practice__dot { --dot-top: calc(var(--stage-h) * 0.18); }
+  .practice__row[data-passed='true'] .practice__dot { background: var(--ink); box-shadow: inset 0 0 0 1.25px var(--ink); }
+  .practice__row[data-active='true'] .practice__dot { transform: scale(1.3); }
+  .practice__num { display: flex; gap: 10px; color: inherit; }
+  .practice__num span { color: var(--ink); }
+  .practice__name { margin-top: 10px; font-size: clamp(34px, 3.8vw, 68px); letter-spacing: -0.05em; font-weight: 560; line-height: 1; }
+  .practice__text { margin-top: 16px; max-width: 40ch; font-size: clamp(16px, 1.1vw, 18px); color: var(--ink-3); transition: color 0.6s var(--ease-out); }
+  .practice__row[data-active='true'] .practice__text { color: var(--ink-2); }
+  .practice__uses { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .practice__use {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 10px; border-radius: 17px;
+    font-size: 14px; font-weight: 560; color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--line-strong); transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+  }
+  .practice__use:hover, .practice__use:focus-visible { background: var(--ink); color: var(--bg); box-shadow: none; }
+
+  .practice__code { margin-top: clamp(56px, 6vw, 96px); position: relative; z-index: 3; display: flex; align-items: baseline; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .practice__gh {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-size: clamp(28px, 3.4vw, 60px); font-weight: 540; letter-spacing: -0.05em;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0% 2px no-repeat; padding-bottom: 6px;
+    transition: background-size 0.7s var(--ease-out);
+  }
+  .practice__gh:hover, .practice__gh:focus-visible { background-size: 100% 2px; }
+  :global(.practice__gh-icon) { width: 0.8em; height: 0.8em; }
+  :global(.practice__gh-arrow) { width: 0.5em; height: 0.5em; transition: transform 0.6s var(--ease-out); }
+  .practice__gh:hover :global(.practice__gh-arrow) { transform: translate(4px, -4px); }
+  .practice__gh-note { color: var(--ink-2); }
+
+  .practice__notes {
+    position: relative; z-index: 3; margin-top: clamp(56px, 6vw, 96px);
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gutter);
+  }
+  .practice__note { padding-top: 16px; border-top: 1px solid var(--ink); }
+  .practice__note dd { margin-top: 10px; font-size: clamp(17px, 1.3vw, 21px); line-height: 1.3; letter-spacing: -0.02em; font-weight: 520; max-width: 20ch; }
+
+  .practice__marquee {
+    margin-top: clamp(80px, 9vw, 150px);
+    overflow: hidden; position: relative; z-index: 3;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+            mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .practice__track { display: flex; width: max-content; will-change: transform; }
+  .practice__set { display: flex; align-items: center; }
+  .practice__tool { font-size: clamp(34px, 5vw, 92px); font-weight: 340; letter-spacing: -0.05em; white-space: nowrap; padding: 0 0.34em; line-height: 1.2; color: var(--ink); }
+  .practice__sep { width: clamp(10px, 1vw, 16px); height: clamp(10px, 1vw, 16px); color: var(--ink-3); flex: none; }
+
+  @media (max-width: 860px) {
+    .practice__title, .practice__lede { grid-column: 1 / -1; }
+    /* the moon pins at the top and the disciplines scroll up beneath it */
+    .practice__body { grid-template-columns: 1fr; --stage-h: 40svh; }
+    .practice__stage-wrap, .practice__list { grid-column: 1; grid-row: 1; }
+    .practice__stage { top: 64px; background: linear-gradient(var(--bg) 82%, transparent); z-index: 4; }
+    .practice__list { padding-top: calc(var(--stage-h) + 24px); }
+    .practice__row { min-height: 52svh; }
+    .practice__row:first-child { padding-top: 0; }
+    .practice__row:first-child .practice__dot { --dot-top: 0px; }
+    .practice__dot { left: calc(var(--gutter) * -0.5 - 5.5px); width: 11px; height: 11px; }
+    .practice__read { bottom: 0; }
+    .practice__cap { display: none; }
+    .practice__name { font-size: clamp(30px, 9vw, 44px); }
+    .practice__notes { grid-template-columns: 1fr 1fr; row-gap: 28px; }
+  }
+</style>

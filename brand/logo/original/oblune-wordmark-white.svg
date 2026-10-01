@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 365 190" width="730" height="380">
+  
+  <g transform="translate(40,104) rotate(24)">
+    <circle r="29.5" fill="none" stroke="#FFFFFF" stroke-width="11"></circle>
+    <path d="M0 -29.5 A29.5 29.5 0 0 1 0 29.5 A12 29.5 0 0 1 0 -29.5 Z" fill="#FFFFFF"></path>
+  </g>
+  <text x="86" y="140" font-family="Satoshi,sans-serif" font-weight="700" font-size="100" letter-spacing="-2" fill="#FFFFFF">blune</text>
+</svg>

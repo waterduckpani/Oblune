@@ -1,0 +1,69 @@
+---
+// A real screen from the work, in a phone or a browser window drawn in CSS. Sharp at any size,
+// light to load, and easy to move with the scroll. Screens already carry their status bar or
+// toolbar; the phone adds only the hardware (the metal band, the bezel and the island).
+interface Props {
+  kind: 'phone' | 'desktop';
+  src: string;
+  alt: string;
+  class?: string;
+  eager?: boolean;
+  /** The rendered width, for choosing a source. */
+  sizes?: string;
+  [key: `data-${string}`]: unknown;
+}
+const { kind, src, alt, class: cls = '', eager = false, sizes, ...rest } = Astro.props;
+const small = src.replace(/\.webp$/, '-s.webp');
+const [w, h] = kind === 'phone' ? [1206, 2622] : [2880, 1888];
+const sw = kind === 'phone' ? 600 : 1440;
+---
+<figure class={`dv dv--${kind} ${cls}`} {...rest}>
+  <div class="dv__bezel"><div class="dv__screen">
+    <img
+      src={src}
+      srcset={`${small} ${sw}w, ${src} ${w}w`}
+      sizes={sizes ?? (kind === 'phone' ? '(max-width: 860px) 60vw, 22vw' : '(max-width: 860px) 92vw, 60vw')}
+      alt={alt}
+      width={w}
+      height={h}
+      loading={eager ? 'eager' : 'lazy'}
+      fetchpriority={eager ? 'high' : undefined}
+      decoding="async"
+    />
+  </div></div>
+</figure>
+
+<style>
+  .dv { margin: 0; position: relative; }
+  .dv img { display: block; width: 100%; height: auto; }
+
+  /* the phone: a brushed-steel band, a black bezel, the island */
+  .dv--phone {
+    padding: 1.15%;
+    border-radius: 16.2% / 7.5%;
+    background: linear-gradient(150deg, #f6f7f8 0%, #a9acb2 24%, #eef0f2 46%, #8e9197 70%, #dfe1e4 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 50px 90px -40px rgba(14, 14, 18, 0.55),
+      0 18px 36px -18px rgba(14, 14, 18, 0.35);
+  }
+  .dv--phone .dv__bezel { padding: 2.9%; border-radius: 15.4% / 7.1%; background: #09090a; }
+  .dv--phone .dv__screen { position: relative; border-radius: 12.6% / 5.8%; overflow: hidden; background: #0a0a0b; }
+  .dv--phone .dv__screen::after {
+    content: ''; position: absolute; left: 50%; top: 1.45%; translate: -50% 0;
+    width: 31%; height: 4.3%; border-radius: 999px; background: #000;
+  }
+
+  /* the browser: the capture carries its own toolbar */
+  .dv--desktop {
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow:
+      0 0 0 1px rgba(20, 20, 24, 0.1),
+      0 60px 110px -50px rgba(14, 14, 18, 0.55),
+      0 24px 48px -26px rgba(14, 14, 18, 0.3);
+  }
+  .dv--desktop .dv__screen { aspect-ratio: 2880 / 1888; }
+  @media (max-width: 860px) { .dv--desktop { border-radius: 6px; } }
+</style>

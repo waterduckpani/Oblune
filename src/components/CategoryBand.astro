@@ -1,0 +1,71 @@
+---
+import Moon from './Moon.astro';
+import { PHASES } from '../lib/phase';
+import { categories, inCategory, type Category } from '../data/projects';
+
+interface Props { category: Category }
+const { category: c } = Astro.props;
+const n = categories.indexOf(c) + 1;
+const items = inCategory(c.id);
+---
+<section class="band" id={`cat-${c.id}`} data-band={c.id} aria-labelledby={`cat-${c.id}-title`}>
+  <div class="container band__inner">
+    <p class="band__count meta"><span>{String(n).padStart(2, '0')}</span><span class="band__of">/ {String(categories.length).padStart(2, '0')}</span><span class="band__kind">{c.plural}</span></p>
+    <h2 class="band__word" id={`cat-${c.id}-title`} data-band-word style={`--len: ${c.label.length}`}>{c.label}</h2>
+    <div class="band__foot">
+      <p class="band__blurb" data-band-reveal>{c.blurb}</p>
+      <ul class="band__list" data-band-reveal>
+        {items.map((p) => (
+          <li>
+            <a href={`#${p.slug}`} class="band__item" data-cursor="View">
+              <Moon lit={PHASES[p.phase].lit} size={16} />
+              <span data-wave>{p.name}</span>
+              <span class="meta band__item-kind">{p.kind}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .band { position: relative; z-index: 3; padding-top: clamp(160px, 18vw, 300px); }
+  .band__inner { position: relative; }
+  .band__count { display: flex; gap: 10px; align-items: baseline; color: var(--ink); }
+  .band__of { color: var(--ink-3); }
+  .band__kind { margin-left: 14px; color: var(--ink-2); }
+  /* the word is struck in metal: a steel gradient whose highlight travels as you scroll (--sheen, set by the page) */
+  .band__word {
+    --sheen: 50%;
+    margin: 0.06em 0 0 -0.06em;
+    font-size: min(clamp(96px, 23vw, 440px), calc(94vw / (var(--len, 4) * 0.5))); line-height: 0.86; letter-spacing: -0.075em; font-weight: 300; font-style: italic;
+    padding: 0 0.08em 0.1em 0;
+    background: linear-gradient(100deg, #2b2d33 0%, #6b6f78 calc(var(--sheen) - 22%), #f3f4f6 var(--sheen), #7b7f87 calc(var(--sheen) + 16%), #25272c 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    white-space: nowrap;
+  }
+  .band__foot {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter);
+    margin-top: clamp(20px, 2.6vw, 40px); padding-top: 20px; border-top: 1px solid var(--line);
+  }
+  .band__blurb { grid-column: 1 / span 6; font-size: clamp(20px, 1.9vw, 32px); line-height: 1.16; letter-spacing: -0.03em; font-weight: 500; max-width: 24em; text-wrap: balance; }
+  .band__list { grid-column: 8 / -1; display: grid; align-content: start; }
+  .band__item {
+    display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 12px;
+    min-height: 48px; border-bottom: 1px solid var(--line);
+    font-size: clamp(18px, 1.4vw, 24px); font-weight: 560; letter-spacing: -0.03em;
+    transition: padding 0.6s var(--ease-out);
+  }
+  .band__item:hover, .band__item:focus-visible { padding-left: 8px; }
+  .band__item-kind { color: var(--ink-2); }
+  :global([data-night='true']) .band__word { background-image: linear-gradient(100deg, #9a9ca2 0%, #c9cbd0 calc(var(--sheen) - 22%), #ffffff var(--sheen), #b9bcc2 calc(var(--sheen) + 16%), #86888e 100%); }
+
+  @media (max-width: 860px) {
+    .band { padding-top: 120px; }
+    .band__word { font-size: min(clamp(76px, 25vw, 200px), calc(92vw / (var(--len, 4) * 0.5))); }
+    .band__foot { grid-template-columns: 1fr; row-gap: 20px; }
+    .band__blurb, .band__list { grid-column: 1; }
+    .band__blurb { font-size: 20px; }
+  }
+</style>

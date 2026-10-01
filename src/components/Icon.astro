@@ -1,0 +1,23 @@
+---
+// Phosphor icons (light weight), inlined at build time.
+import upRight from '@phosphor-icons/core/assets/light/arrow-up-right-light.svg?raw';
+import downRight from '@phosphor-icons/core/assets/light/arrow-down-right-light.svg?raw';
+import right from '@phosphor-icons/core/assets/light/arrow-right-light.svg?raw';
+import left from '@phosphor-icons/core/assets/light/arrow-left-light.svg?raw';
+import github from '@phosphor-icons/core/assets/light/github-logo-light.svg?raw';
+import code from '@phosphor-icons/core/assets/light/code-light.svg?raw';
+import x from '@phosphor-icons/core/assets/light/x-light.svg?raw';
+import copy from '@phosphor-icons/core/assets/light/copy-light.svg?raw';
+import expand from '@phosphor-icons/core/assets/light/arrows-out-simple-light.svg?raw';
+import play from '@phosphor-icons/core/assets/light/play-light.svg?raw';
+
+const icons = { 'arrow-up-right': upRight, 'arrow-down-right': downRight, 'arrow-right': right, 'arrow-left': left, github, code, x, copy, expand, play };
+
+interface Props {
+  name: keyof typeof icons;
+  class?: string;
+}
+const { name, class: className = '' } = Astro.props;
+const svg = icons[name].replace('<svg ', `<svg aria-hidden="true" class="${className}" fill="currentColor" `);
+---
+<Fragment set:html={svg} />

@@ -1,0 +1,52 @@
+---
+import { emblemPath } from '../lib/phase';
+import wordmark from '../../brand/logo/oblune-wordmark-black.svg?raw';
+const BLUNE = wordmark.match(/<path fill="#141416" d="([^"]+)"/)?.[1] ?? '';
+---
+<div class="loader" data-loader>
+  <div class="loader__logo" data-loader-logo aria-hidden="true">
+    <svg class="loader__svg" viewBox="3 62 334 82" overflow="visible">
+      <defs>
+        <clipPath id="loader-letters-clip"><rect x="80" y="40" width="0" height="120" data-loader-clip /></clipPath>
+      </defs>
+      <g transform="translate(40 104)">
+        <circle class="loader__track" r="52" pathLength="1" data-loader-ring />
+        <path class="loader__emblem" transform="rotate(24)" fill="currentColor" fill-rule="evenodd" d={emblemPath(0)} data-loader-moon />
+        <circle r="35" fill="none" data-loader-slot />
+      </g>
+      <g clip-path="url(#loader-letters-clip)"><path fill="currentColor" d={BLUNE} data-loader-letters /></g>
+    </svg>
+  </div>
+
+  <p class="loader__count meta" aria-hidden="true"><span data-loader-count>000</span><span class="loader__of">forming the moon</span></p>
+  <p class="loader__note meta" aria-hidden="true">Oblune Studio<span>/</span>Selected work, 2026</p>
+</div>
+<p class="sr-only" role="status" data-loader-status>Loading</p>
+
+<style>
+  .loader {
+    position: fixed; inset: 0; z-index: 50;
+    background: var(--bg);
+    display: grid; place-items: center;
+    color: var(--ink);
+  }
+  /* the emblem starts alone in the centre; the letters arrive and the logo recentres */
+  .loader__logo { width: min(52vw, 560px); translate: 39% 0; }
+  .loader__svg { width: 100%; height: auto; overflow: visible; }
+  .loader__track {
+    fill: none; stroke: var(--ink); stroke-width: 0.35; stroke-dasharray: 0.004 0.0098;
+    stroke-dashoffset: 0; opacity: 0.55; transform: rotate(-90deg);
+  }
+  .loader__emblem { transition: opacity 0.6s; }
+
+  .loader__count { position: absolute; left: var(--gutter); bottom: clamp(24px, 4vh, 40px); color: var(--ink); display: flex; gap: 14px; align-items: baseline; }
+  .loader__count > span:first-child { font-size: 13px; letter-spacing: 0.08em; }
+  .loader__of { color: var(--ink-3); }
+  .loader__note { position: absolute; right: var(--gutter); bottom: clamp(24px, 4vh, 40px); color: var(--ink-2); }
+  .loader__note span { margin: 0 0.7em; color: var(--ink-3); }
+  :global(html:not(.js)) .loader, :global(html.quick) .loader { display: none; }
+  @media (max-width: 860px) {
+    .loader__logo { width: 76vw; }
+    .loader__note { display: none; }
+  }
+</style>

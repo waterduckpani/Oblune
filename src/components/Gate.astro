@@ -1,0 +1,100 @@
+---
+// Alfard's approval gate, as a terminal you can answer. The session is Alfard's own README
+// recording (email address neutralised). `static` draws it paused at the gate, for the stage.
+interface Props { id: string; static?: boolean }
+const { id, static: still = false } = Astro.props;
+
+const intro = [
+  { t: '~ % alfard run postman', c: 'cmd' },
+  { t: 'postman  ·  reads, replies to and sorts my email', c: 'dim' },
+  { t: 'connected: gmail, gdrive, web search', c: 'ok' },
+  { t: 'you: check my email for one from slickdash and reply to it', c: 'you' },
+  { t: 'postman: found “Hey what’s up!” from slickdash. Drafting a reply.', c: 'agent' },
+];
+const review = [
+  ['Tool', 'gmail_send_message'],
+  ['To', 'slickdash@example.com'],
+  ['Subject', 'Re: Hey what’s up!'],
+  ['Body', 'Hi, I’m doing well, thank you!'],
+  ['Source', 'tool_result · gmail'],
+];
+const script = { intro, review };
+---
+<div class="gate" data-gate={id} data-mode={still ? 'static' : 'live'} data-state={still ? 'await' : 'idle'} data-gate-script={JSON.stringify(script)} role="group" aria-label="Alfard’s approval gate, as a terminal">
+  <div class="gate__bar" aria-hidden="true"><i></i><i></i><i></i><span>alfard · postman</span></div>
+  <div class="gate__body" data-gate-body>
+    {still && (
+      <>
+        {intro.map((l) => <p class={`gate__l gate__l--${l.c}`}>{l.t}</p>)}
+        <div class="gate__review is-on" data-gate-review>
+          <p class="gate__review-k">Review required</p>
+          {review.map(([k, v]) => <p class="gate__row"><span>{k}</span><span>{v}</span></p>)}
+        </div>
+        <p class="gate__l gate__l--ask">Approve? [y/n]: <span class="gate__cursor" aria-hidden="true"></span></p>
+      </>
+    )}
+  </div>
+  {!still && (
+    <div class="gate__keys" data-gate-keys>
+      <p class="gate__hint" data-gate-hint aria-live="polite">Scroll it into view to start the session.</p>
+      <div class="gate__btns">
+        <button class="gate__btn gate__btn--y" type="button" data-gate-answer="y" disabled><kbd>y</kbd>Approve</button>
+        <button class="gate__btn" type="button" data-gate-answer="n" disabled><kbd>n</kbd>Deny</button>
+        <button class="gate__btn gate__btn--ghost" type="button" data-gate-replay hidden>Run it again</button>
+      </div>
+    </div>
+  )}
+</div>
+
+<style>
+  .gate {
+    --g-bg: #161618;
+    border-radius: 14px; overflow: hidden; background: var(--g-bg); color: #d8d9dc;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset, 0 60px 120px -50px rgba(0, 0, 0, 0.6), 0 20px 40px -20px rgba(0, 0, 0, 0.4);
+    font-family: var(--mono); font-size: clamp(11.5px, 0.95vw, 15px); line-height: 1.6;
+    text-align: left;
+  }
+  .gate__bar { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; background: #1d1d20; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+  .gate__bar i { width: 11px; height: 11px; border-radius: 50%; background: #39393d; }
+  .gate__bar span { flex: 1; text-align: center; margin-right: 48px; color: #7d7e84; font-size: 12px; }
+  .gate__body { padding: 20px 22px 22px; min-height: 22em; }
+  .gate[data-mode='static'] .gate__body { min-height: 0; }
+  .gate__l { margin: 0 0 0.35em; white-space: pre-wrap; word-break: break-word; }
+  .gate__l--cmd { color: #e8e9ec; font-weight: 600; }
+  .gate__l--dim { color: #8b8c92; }
+  .gate__l--ok { color: #7fb58a; }
+  .gate__l--you { color: #f2f2f4; font-weight: 600; margin-top: 0.8em; }
+  .gate__l--agent { color: #b9bac0; }
+  .gate__l--ask { color: #f2f2f4; font-weight: 700; margin-top: 1em; }
+  .gate__l--yes { color: #7fb58a; font-weight: 600; margin-top: 0.6em; }
+  .gate__l--no { color: #e6a79e; font-weight: 600; margin-top: 0.6em; }
+  .gate__l--log { color: #6d6e75; font-size: 0.88em; }
+  .gate__answer { color: #e8c37a; }
+  .gate__review {
+    position: relative; margin: 1.4em 0 0.4em; padding: 1.1em 1.1em 0.7em; border: 1.5px solid #4a4b50; border-radius: 4px;
+    opacity: 0; transform: translateY(6px); transition: opacity 0.5s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s;
+  }
+  .gate__review.is-on { opacity: 1; transform: none; }
+  .gate[data-state='await'] .gate__review { border-color: #e8c37a; }
+  .gate__review-k { position: absolute; top: -0.8em; left: 50%; translate: -50% 0; margin: 0; padding: 0 0.8em; background: var(--g-bg); color: #e8c37a; font-weight: 600; }
+  .gate__row { display: grid; grid-template-columns: 8em 1fr; margin: 0 0 0.3em; }
+  .gate__row span:first-child { color: #8b8c92; }
+  .gate__row span:last-child { color: #e6e7ea; word-break: break-word; }
+  .gate__cursor { display: inline-block; width: 0.6em; height: 1.1em; margin-left: 2px; vertical-align: -0.18em; background: #e6e7ea; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .gate__keys { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 14px 16px; border-top: 1px solid rgba(255, 255, 255, 0.06); background: #121214; font-family: var(--font); }
+  .gate__hint { margin: 0; font-size: 13.5px; color: #a3a4aa; }
+  .gate__btns { display: flex; gap: 8px; }
+  .gate__btn { display: inline-flex; align-items: center; gap: 10px; height: 38px; padding: 0 14px 0 8px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.12); background: #1d1d20; color: #ececee; cursor: pointer; font-weight: 560; font-size: 14px; transition: background-color 0.25s, border-color 0.25s, opacity 0.3s, transform 0.2s; }
+  .gate__btn kbd { font-family: var(--mono); font-size: 12px; min-width: 22px; height: 22px; display: grid; place-items: center; border-radius: 6px; background: rgba(255, 255, 255, 0.08); }
+  .gate__btn:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.3); }
+  .gate__btn:active:not(:disabled) { transform: scale(0.97); }
+  .gate__btn:disabled { opacity: 0.35; cursor: default; }
+  .gate__btn--y:not(:disabled) { background: #e8c37a; color: #1b1608; border-color: transparent; }
+  .gate__btn--y:not(:disabled) kbd { background: rgba(0, 0, 0, 0.12); }
+  .gate__btn--ghost { padding-left: 14px; }
+  .gate__btn[hidden] { display: none; }
+  .gate[data-state='await'] .gate__btn--y:not(:disabled) { animation: nudge 2.2s ease-in-out infinite; }
+  @keyframes nudge { 0%, 70%, 100% { box-shadow: 0 0 0 0 rgba(232, 195, 122, 0.5); } 85% { box-shadow: 0 0 0 8px rgba(232, 195, 122, 0); } }
+</style>

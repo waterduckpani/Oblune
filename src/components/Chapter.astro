@@ -1,0 +1,310 @@
+---
+import Moon from './Moon.astro';
+import Icon from './Icon.astro';
+import { PHASES } from '../lib/phase';
+import type { Project } from '../data/projects';
+
+interface Props { project: Project; index: number; total: number }
+const { project: p, index } = Astro.props;
+const lit = PHASES[p.phase].lit;
+const side = index % 2 === 0 ? 'left' : 'right';
+const dark = p.stage.tone === 'dark';
+// the big moon behind the devices: a lit sphere in the product's colour, its shadow side soft
+const litCol = dark ? p.stage.glow : p.stage.bg;
+const shadowCol = dark ? p.stage.bg : `color-mix(in srgb, ${p.stage.bg} 70%, #1b1c20)`;
+const n = p.steps.length;
+// the moon waxes toward the project's own phase as you move through its steps
+const discLit = (i: number) => Math.min(lit, 0.12 + ((lit - 0.12) * (i + 1)) / n);
+/** The shadow is a soft disc slid off to the left; the further it goes, the more is lit. */
+const shadowX = (l: number) => (-2 * 48 * l).toFixed(2);
+const ticks = p.steps.map((_, i) => {
+  const a = (-128 + (i * 76) / Math.max(1, n - 1)) * (Math.PI / 180);
+  return { x: Math.cos(a) * 49.4, y: Math.sin(a) * 49.4 };
+});
+const caseHref = `/work/${p.slug}`;
+---
+<section
+  class={`chapter chapter--${side}`}
+  id={p.slug}
+  data-chapter={p.slug}
+  data-lit={lit}
+  data-step="-1"
+  data-tone={p.stage.tone}
+  data-case={caseHref}
+  style={`--stage-lit: ${litCol}; --stage-shadow: ${shadowCol}; --steps: ${n}`}
+  aria-labelledby={`${p.slug}-name`}
+>
+  <header class="chapter__head container">
+    <div class="chapter__meta">
+      <p class="chapter__status">
+        <span class="chapter__node" data-line-node aria-hidden="true"><Moon lit={lit} size={22} /></span>
+        <span class="chapter__state">{p.statusNote}</span>
+        <span class={`chapter__context chapter__context--${p.context.kind}`}>{p.context.label}</span>
+      </p>
+      <dl class="chapter__facts">
+        <div><dt class="meta">Type</dt><dd>{p.kind}</dd></div>
+        <div><dt class="meta">Built with</dt><dd>{p.stack.slice(0, 3).join(', ')}</dd></div>
+        <div><dt class="meta">Year</dt><dd>{p.year}</dd></div>
+      </dl>
+    </div>
+    <h3 class="chapter__name" id={`${p.slug}-name`} translate="no" data-chapter-name data-vt={p.slug} style={`--len: ${p.name.length}; --wlen: ${Math.max(...p.name.split(' ').map((w) => w.length))}`}>
+      <a href={caseHref} class="chapter__name-link" data-cursor="Case study">{p.name}</a>
+    </h3>
+    <div class="chapter__intro">
+      <p class="chapter__line" data-chapter-line>{p.line}</p>
+      <div class="chapter__about">
+        <p class="chapter__summary">{p.summary}</p>
+        <div class="chapter__ctas">
+          <a class="btn btn--solid" href={caseHref} data-magnetic data-cursor="Read">
+            <span data-wave>Read the case study</span>
+            <Icon name="arrow-right" class="btn__arrow" />
+          </a>
+          {p.live && (
+            <a class="chapter__link" href={p.live.href} target="_blank" rel="noopener" data-cursor="Open" data-live-open={p.live.embed ? p.slug : undefined}>
+              <span data-wave>{p.live.host}</span>
+              <Icon name="arrow-up-right" class="chapter__link-icon" />
+            </a>
+          )}
+          {p.repo && (
+            <button class="chapter__link" type="button" data-repo-open={p.repo.slug} data-cursor="Browse">
+              <Icon name="code" class="chapter__link-icon" />
+              <span data-wave>Browse the code</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="chapter__body container">
+    <ol class="chapter__steps" aria-label={`How ${p.name} works`}>
+      {p.steps.map((s, i) => (
+        <li class="chapter__step" data-i={i}>
+          <span class="chapter__dot" data-line-step aria-hidden="true"></span>
+          <h4 class="chapter__step-title">{s.title}</h4>
+          <p class="chapter__step-text">{s.text}</p>
+        </li>
+      ))}
+      <li class="chapter__outro">
+        {p.cta.command ? (
+          <button class="chapter__command" type="button" data-copy={p.cta.command} data-cursor="Copy">
+            <span class="chapter__prompt" aria-hidden="true">$</span>
+            <code>{p.cta.command}</code>
+            <span class="meta chapter__command-hint" data-copy-state aria-live="polite">Copy</span>
+          </button>
+        ) : null}
+        <a class="chapter__next" href={caseHref} data-cursor="Read">
+          <span class="chapter__next-label" data-wave>The whole story</span>
+          <Icon name="arrow-right" class="chapter__next-icon" />
+        </a>
+        <p class="chapter__next-note">Why it works the way it does, the system behind it, every screen{p.repo ? ' and the code' : ''}.</p>
+        <p class="chapter__next-more">
+          {p.live && <a class="chapter__small" href={p.live.href} target="_blank" rel="noopener" data-live-open={p.live.embed ? p.slug : undefined}><span data-wave>{p.live.label}</span><Icon name="arrow-up-right" class="chapter__small-icon" /></a>}
+          {p.repo && <button class="chapter__small" type="button" data-repo-open={p.repo.slug}><span data-wave>Browse the code</span><Icon name="code" class="chapter__small-icon" /></button>}
+        </p>
+      </li>
+    </ol>
+
+    <div class="chapter__stage-wrap">
+      <div class="chapter__stage" data-stage-panel>
+        <svg class="chapter__disc" viewBox="-54 -54 108 108" aria-hidden="true" data-disc data-disc-lits={JSON.stringify(p.steps.map((_, i) => discLit(i)))}>
+          <defs>
+            <radialGradient id={`lit-${p.slug}`} cx="0.64" cy="0.34" r="0.78">
+              <stop offset="0" stop-color={`color-mix(in srgb, ${litCol} 70%, #ffffff)`} />
+              <stop offset="0.55" stop-color={litCol} />
+              <stop offset="1" stop-color={`color-mix(in srgb, ${litCol} 82%, ${dark ? '#000000' : '#1b1c20'})`} />
+            </radialGradient>
+            <radialGradient id={`limb-${p.slug}`} cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0.72" stop-color="#000" stop-opacity="0" />
+              <stop offset="1" stop-color="#000" stop-opacity={dark ? 0.38 : 0.16} />
+            </radialGradient>
+            <filter id={`soft-${p.slug}`} x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.4" /></filter>
+            <clipPath id={`disc-${p.slug}`}><circle r="48" /></clipPath>
+          </defs>
+          <g class="chapter__moon" transform="rotate(-24)">
+            <circle r="48" fill={`url(#lit-${p.slug})`} />
+            <g clip-path={`url(#disc-${p.slug})`}>
+              <circle r="51" cx={shadowX(discLit(0))} fill="var(--stage-shadow)" filter={`url(#soft-${p.slug})`} data-disc-shadow />
+            </g>
+            <circle r="48" fill={`url(#limb-${p.slug})`} />
+          </g>
+          <circle class="chapter__orbit" r="49.4" />
+          {ticks.map((t, i) => <circle class="chapter__tick" cx={t.x} cy={t.y} r="0.9" data-tick={i} />)}
+        </svg>
+        <div class="chapter__slot" data-stage aria-hidden="true">
+          <img class="chapter__fallback" src={`${p.image.base}-1400.webp`} alt="" width="2400" height="1500" loading="lazy" decoding="async" />
+        </div>
+        <p class="chapter__caption meta" aria-hidden="true"><span data-caption>{p.steps[0].title}</span></p>
+      </div>
+    </div>
+    <p class="sr-only">{p.image.alt}</p>
+  </div>
+</section>
+
+<style>
+  .chapter { position: relative; padding-top: clamp(140px, 15vw, 240px); }
+
+  /* ---------- head ---------- */
+  .chapter__head { position: relative; z-index: 3; }
+  .chapter__meta {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter);
+    align-items: end; padding-bottom: 18px; border-bottom: 1px solid var(--line);
+  }
+  .chapter__status { grid-column: 1 / span 5; display: flex; align-items: center; gap: 14px; }
+  /* the glyph sits so the line's loop around it starts in the gutter, clear of the copy */
+  .chapter__node { width: 22px; height: 22px; margin-left: calc(9px - var(--gutter) / 2); margin-right: 8px; display: grid; place-items: center; color: var(--ink); }
+  .chapter__state { font-size: 14px; font-weight: 560; }
+  .chapter__context {
+    display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 13px;
+    font-size: 12px; font-weight: 560; letter-spacing: 0; white-space: nowrap;
+    box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--ink-2);
+  }
+  .chapter__context--client, .chapter__context--hackathon, .chapter__context--cofounder { background: var(--ink); color: var(--bg); box-shadow: none; }
+  .chapter__facts { grid-column: 7 / -1; display: flex; justify-content: flex-end; gap: clamp(20px, 3vw, 48px); text-align: left; }
+  .chapter__facts dd { margin-top: 4px; font-size: 14px; font-weight: 540; }
+
+  .chapter__name {
+    margin: clamp(10px, 1.6vw, 24px) 0 0 -0.055em;
+    /* as big as it can be, and never wider than the screen */
+    font-size: min(clamp(88px, 21.5vw, 400px), calc(94vw / (var(--len, 6) * 0.54)));
+    line-height: 1.06;
+    margin-block: -0.1em -0.12em !important;
+    font-weight: 640;
+    letter-spacing: -0.068em;
+    white-space: nowrap;
+  }
+  .chapter__intro {
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter);
+    margin-top: clamp(28px, 3.4vw, 56px); align-items: start;
+  }
+  .chapter__line {
+    grid-column: 1 / span 6;
+    font-size: clamp(26px, 2.7vw, 48px); line-height: 1.04; letter-spacing: -0.04em; font-weight: 540;
+    max-width: 15em; text-wrap: balance;
+  }
+  .chapter__about { grid-column: 8 / -1; }
+  .chapter__summary { color: var(--ink-2); font-size: clamp(16px, 1.1vw, 18px); max-width: 44ch; }
+  .chapter__ctas { margin-top: 24px; display: flex; align-items: center; gap: 8px 22px; flex-wrap: wrap; }
+  .chapter__link {
+    display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0;
+    border: 0; background: none; cursor: pointer; font-weight: 560; font-size: 15px; color: inherit;
+  }
+  :global(.chapter__link-icon) { width: 17px; height: 17px; }
+  .chapter__name-link { display: inline-block; }
+  .chapter__name-link:focus-visible { outline-offset: 8px; }
+
+  .chapter--right .chapter__name { text-align: right; margin: clamp(10px, 1.6vw, 24px) -0.03em 0 0; }
+  .chapter--right .chapter__line { grid-column: 8 / -1; grid-row: 1; }
+  .chapter--right .chapter__about { grid-column: 1 / span 5; grid-row: 1; }
+  .chapter--right .chapter__status { grid-column: 8 / -1; grid-row: 1; }
+  .chapter--right .chapter__facts { grid-column: 1 / span 7; grid-row: 1; justify-content: flex-start; }
+
+  /* ---------- body: steps scroll past a moon that waxes ---------- */
+  .chapter__body {
+    position: relative;
+    display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter);
+    margin-top: clamp(40px, 5vw, 90px);
+    --stage-h: min(84vh, 52vw);
+  }
+  .chapter__steps { grid-column: 1 / span 5; grid-row: 1; position: relative; z-index: 3; }
+  .chapter__stage-wrap { grid-column: 6 / -1; grid-row: 1; position: relative; }
+  .chapter--right .chapter__steps { grid-column: 8 / -1; }
+  .chapter--right .chapter__stage-wrap { grid-column: 1 / span 7; }
+
+  .chapter__step {
+    position: relative;
+    min-height: calc(var(--stage-h) * 0.7);
+    padding: 0 0 0 12px;
+    color: var(--ink-3);
+    transition: color 0.6s var(--ease-out);
+  }
+  .chapter__step:first-child { padding-top: calc(var(--stage-h) * 0.2); }
+  .chapter__dot {
+    position: absolute; left: calc(var(--gutter) * -0.5 - 6.5px); top: calc(var(--dot-top, 0px) + 9px);
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--bg); box-shadow: inset 0 0 0 1.25px var(--line-strong);
+    transition: box-shadow 0.4s var(--ease-out), background-color 0.4s var(--ease-out), transform 0.5s var(--ease-out);
+  }
+  .chapter__step:first-child .chapter__dot { --dot-top: calc(var(--stage-h) * 0.2); }
+  .chapter__step-title {
+    font-size: clamp(26px, 2.5vw, 44px); line-height: 1.04; letter-spacing: -0.04em; font-weight: 560;
+    max-width: 13em; text-wrap: balance;
+  }
+  .chapter__step-text { margin-top: 16px; font-size: clamp(16px, 1.1vw, 18px); max-width: 36ch; color: var(--ink-3); transition: color 0.6s var(--ease-out); }
+  .chapter__step[data-active='true'] { color: var(--ink); }
+  .chapter__step[data-active='true'] .chapter__step-text { color: var(--ink-2); }
+  .chapter__step[data-passed='true'] .chapter__dot { background: var(--ink); box-shadow: inset 0 0 0 1.25px var(--ink); }
+  .chapter__step[data-active='true'] .chapter__dot { transform: scale(1.3); }
+
+  /* the way out: the product, live, or its code */
+  .chapter__outro { padding: calc(var(--stage-h) * 0.06) 0 calc(var(--stage-h) * 0.3) 12px; }
+  .chapter__next {
+    display: inline-flex; align-items: flex-start; gap: 10px;
+    font-size: clamp(34px, 3.8vw, 68px); font-weight: 560; letter-spacing: -0.05em; line-height: 1;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0% 2px no-repeat;
+    padding-bottom: 8px;
+    transition: background-size 0.7s var(--ease-out);
+  }
+  .chapter__next:hover, .chapter__next:focus-visible { background-size: 100% 2px; }
+  :global(.chapter__next-icon) { width: 0.5em; height: 0.5em; margin-top: 0.12em; transition: transform 0.6s var(--ease-out); }
+  .chapter__next:hover :global(.chapter__next-icon) { transform: translate(4px, -4px); }
+  .chapter__next-note { margin-top: 14px; color: var(--ink-2); max-width: 34ch; }
+  .chapter__next-more { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+  .chapter__small { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--ink); font-size: 14px; font-weight: 560; }
+  :global(.chapter__small-icon) { width: 14px; height: 14px; }
+  .chapter__command {
+    display: flex; width: fit-content; align-items: center; gap: 12px; margin-bottom: 22px;
+    min-height: 48px; padding: 0 16px; border-radius: 12px; border: 0; cursor: pointer;
+    background: var(--ink); color: var(--bg); font-family: var(--mono); font-size: 15px;
+    transition: transform 0.2s var(--ease-out);
+  }
+  .chapter__command:active { transform: scale(0.97); }
+  .chapter__prompt { opacity: 0.5; }
+  .chapter__command-hint { color: inherit; opacity: 0.6; }
+
+  .chapter__stage {
+    position: sticky; top: calc((100vh - var(--stage-h)) / 2);
+    height: var(--stage-h);
+    z-index: 0;
+  }
+  .chapter__disc {
+    position: absolute; left: 50%; top: 50%;
+    width: min(100%, var(--stage-h) * 1.02); aspect-ratio: 1;
+    translate: -50% -50%;
+    overflow: visible;
+    will-change: transform;
+  }
+  :global([data-disc-shadow]) { transition: cx 1.3s cubic-bezier(0.65, 0, 0.35, 1); }
+  
+  .chapter__orbit { fill: none; stroke: var(--ink); stroke-opacity: 0.16; stroke-width: 0.18; }
+  .chapter__tick { fill: var(--bg); stroke: var(--ink); stroke-width: 0.22; transition: fill 0.4s; }
+  :global(.chapter__tick[data-on='true']) { fill: var(--ink); }
+  .chapter__slot { position: absolute; inset: 5% 3% 9%; }
+  .chapter__fallback { width: 100%; height: 100%; object-fit: contain; display: none; }
+  :global(.no-webgl) .chapter__fallback { display: block; }
+  .chapter__caption { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; color: var(--ink-2); }
+
+  @media (max-width: 860px) {
+    .chapter { padding-top: 96px; }
+    .chapter__meta { grid-template-columns: 1fr; row-gap: 14px; }
+    .chapter__status, .chapter--right .chapter__status { grid-column: 1; grid-row: 1; }
+    .chapter__facts, .chapter--right .chapter__facts { display: none; }
+    .chapter__name, .chapter--right .chapter__name { text-align: left; margin: 12px 0 0 -0.05em; font-size: min(clamp(76px, 25vw, 180px), calc(92vw / (var(--wlen, 6) * 0.56))); white-space: normal; line-height: 0.96; }
+    .chapter__intro { grid-template-columns: 1fr; row-gap: 18px; }
+    .chapter__line, .chapter__about, .chapter--right .chapter__line, .chapter--right .chapter__about { grid-column: 1; grid-row: auto; }
+    .chapter__summary { font-size: 16px; }
+
+    /* on phones the moon pins at the top and the steps scroll beneath it, one at a time */
+    .chapter__body { grid-template-columns: 1fr; margin-top: 40px; --stage-h: 52svh; }
+    .chapter__stage-wrap, .chapter--right .chapter__stage-wrap { grid-column: 1; grid-row: 1; }
+    .chapter__steps, .chapter--right .chapter__steps { grid-column: 1; grid-row: 1; padding-top: calc(var(--stage-h) + 24px); }
+    .chapter__stage { top: 64px; }
+    /* the line runs down the gutter on phones, so it never crosses the copy */
+    .chapter__step { min-height: 46svh; padding-left: 12px; }
+    .chapter__step:first-child { padding-top: 0; }
+    .chapter__step:first-child .chapter__dot { --dot-top: 0px; }
+    .chapter__dot { left: calc(var(--gutter) * -0.5 - 5.5px); width: 11px; height: 11px; }
+    .chapter__outro { padding: 0 0 26svh 12px; }
+    .chapter__caption { display: none; }
+  }
+</style>

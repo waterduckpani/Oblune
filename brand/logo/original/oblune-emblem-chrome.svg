@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="320" height="320">
+  <defs><linearGradient id="chromeFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E3E5E8"></stop><stop offset="0.45" stop-color="#8A8D93"></stop><stop offset="0.6" stop-color="#D5D7DA"></stop><stop offset="1" stop-color="#B4B7BC"></stop></linearGradient></defs>
+  <g transform="translate(40,40) rotate(24)">
+    <circle r="29.5" fill="none" stroke="url(#chromeFill)" stroke-width="11"></circle>
+    <path d="M0 -29.5 A29.5 29.5 0 0 1 0 29.5 A12 29.5 0 0 1 0 -29.5 Z" fill="url(#chromeFill)"></path>
+  </g>
+</svg>

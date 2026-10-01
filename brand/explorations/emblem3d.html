@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: #ececea; overflow: hidden; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+
+const params = new URLSearchParams(location.search);
+const pose = params.get('pose') || 'front';
+const finish = params.get('finish') || 'chrome';
+const phase = parseFloat(params.get('phase') ?? '12'); // terminator ellipse rx, logo = 12
+
+// ---- Emblem geometry, built from the SVG definition ----
+// SVG: ring r=29.5 stroke 11 (outer 35, inner 24); lune = right half-disc r29.5 + left half-ellipse rx=12, ry=29.5.
+// Visible crescent hole = inside inner radius 24, left of the terminator ellipse.
+const R_OUT = 35, R_IN = 24, RY = 29.5;
+function crescentHole(rx) {
+  // Walk the circle r=24 on the left side and the ellipse, where the circle lies outside the ellipse.
+  const pts = [];
+  const N = 160;
+  // find y range where circle x < ellipse x (hole exists)
+  const holeAt = (y) => {
+    const cx = -Math.sqrt(Math.max(R_IN * R_IN - y * y, 0));
+    const ex = -rx * Math.sqrt(Math.max(1 - (y * y) / (RY * RY), 0));
+    return { cx, ex, open: cx < ex - 1e-6 };
+  };
+  let yMax = 0;
+  for (let y = 0; y <= R_IN; y += 0.001) { if (holeAt(y).open) yMax = y; else break; }
+  // outer edge: circle from -yMax to +yMax (left side)
+  for (let i = 0; i <= N; i++) {
+    const y = -yMax + (2 * yMax * i) / N;
+    pts.push(new THREE.Vector2(holeAt(y).cx, y));
+  }
+  // inner edge: ellipse back from +yMax to -yMax
+  for (let i = N; i >= 0; i--) {
+    const y = -yMax + (2 * yMax * i) / N;
+    pts.push(new THREE.Vector2(holeAt(y).ex, y));
+  }
+  return pts;
+}
+
+function emblemGeometry(rx) {
+  const shape = new THREE.Shape();
+  shape.absarc(0, 0, R_OUT, 0, Math.PI * 2, false);
+  // SVG y is down; mirror to three's y-up, and reverse winding for the hole
+  const hole = new THREE.Path(crescentHole(rx).map((p) => new THREE.Vector2(p.x, -p.y)).reverse());
+  shape.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: 5, bevelEnabled: true, bevelThickness: 2.2, bevelSize: 1.1, bevelSegments: 10, curveSegments: 128,
+  });
+  geo.translate(0, 0, -2.5);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ---- Renderer ----
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#ececea');
+
+// ---- Studio environment: dark room with softboxes, so chrome has contrast on a light page ----
+function studioEnv() {
+  const env = new THREE.Scene();
+  env.background = new THREE.Color('#2a2b2e');
+  const box = (w, h, pos, rot, intensity, color = '#ffffff') => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(intensity), side: THREE.DoubleSide }));
+    m.position.set(...pos); m.rotation.set(...rot); env.add(m);
+  };
+  // key strip softbox top-left, fill right, rim behind, floor bounce
+  box(3, 14, [-6, 3, 4], [0, Math.PI / 3, 0.25], 6);
+  box(2, 10, [7, 0, 3], [0, -Math.PI / 2.6, 0], 2.5);
+  box(10, 1.2, [0, 7, -4], [Math.PI / 2.4, 0, 0], 4);
+  box(20, 20, [0, -8, 0], [-Math.PI / 2, 0, 0], 0.9, '#e8e8e6');
+  box(1.2, 8, [2, 2, 8], [0, 0, 0], 3);
+  const pm = new THREE.PMREMGenerator(renderer);
+  return pm.fromScene(env, 0.02).texture;
+}
+scene.environment = studioEnv();
+
+// ---- Material ----
+const finishes = {
+  chrome: { color: '#f2f3f5', metalness: 1, roughness: 0.08 },
+  satin: { color: '#d9dbde', metalness: 1, roughness: 0.32 },
+  titanium: { color: '#b9bcc2', metalness: 1, roughness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.1 },
+};
+const mat = new THREE.MeshPhysicalMaterial(finishes[finish]);
+const emblem = new THREE.Mesh(emblemGeometry(phase), mat);
+const group = new THREE.Group();
+group.add(emblem);
+emblem.rotation.z = THREE.MathUtils.degToRad(-24); // SVG rotate(24) is clockwise on screen
+scene.add(group);
+
+// soft floor shadow (radial gradient sprite)
+const sc = document.createElement('canvas'); sc.width = sc.height = 256;
+const g = sc.getContext('2d'); const rg = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+rg.addColorStop(0, 'rgba(0,0,0,0.28)'); rg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+const shadow = new THREE.Mesh(new THREE.PlaneGeometry(90, 26), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = -52; scene.add(shadow);
+
+const camera = new THREE.PerspectiveCamera(28, innerWidth / innerHeight, 1, 1000);
+camera.position.set(0, 0, 190);
+const poses = {
+  front: { rx: 0, ry: 0 },
+  tilt: { rx: -0.28, ry: 0.55 },
+  edge: { rx: -0.12, ry: 1.12 },
+};
+const p = poses[pose] || poses.front;
+group.rotation.set(p.rx, p.ry, 0);
+if (pose === 'front') shadow.visible = false;
+
+renderer.render(scene, camera);
+window.__done = true;
+</script>
+</body>
+</html>

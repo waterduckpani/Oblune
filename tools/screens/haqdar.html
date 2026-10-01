@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+  Haqdar's four intake screens, re-set at native iPhone resolution (402x874pt @3x) from the bot's
+  own messages (as shown in haqdar/.github/readme/flow.png). Render with ?s=a|b|c|d at DPR 3.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { --blue: #3a8be0; --btn: rgba(88, 110, 72, 0.62); --btn-head: rgba(88, 110, 72, 0.42); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 402px; height: 874px; overflow: hidden; }
+  body { font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; -webkit-font-smoothing: antialiased; position: relative; background: #f6f6f6; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 44px; z-index: 5; color: #0b0b0c; }
+  .status .time { font-weight: 600; font-size: 17px; letter-spacing: -0.2px; }
+  .status .icons { display: flex; gap: 6px; align-items: center; }
+  .status svg { width: 18px; height: 18px; }
+  .status .batt { width: 27px; height: 27px; }
+  .header { position: absolute; top: 54px; left: 0; right: 0; height: 58px; background: rgba(246,246,246,0.96); border-bottom: 0.5px solid rgba(0,0,0,0.12); display: grid; grid-template-columns: 60px 1fr 60px; align-items: center; z-index: 4; }
+  .back { color: var(--blue); padding-left: 10px; }
+  .back svg { width: 26px; height: 26px; }
+  .title { text-align: center; line-height: 1.12; }
+  .title b { font-size: 17px; font-weight: 600; display: block; }
+  .title span { font-size: 13px; color: #8a8a8e; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; margin-left: 6px; background: radial-gradient(circle at 35% 30%, #1d6b73, #0c3a45 70%); display: grid; place-items: center; color: #f0b44c; font-size: 21px; font-weight: 600; }
+  .chat {
+    position: absolute; top: 112px; left: 0; right: 0; bottom: 84px; overflow: hidden;
+    background:
+      radial-gradient(circle, rgba(60,80,40,0.10) 1px, transparent 1.4px) 0 0 / 14px 14px,
+      linear-gradient(160deg, #cfdcaa 0%, #dcd9a0 34%, #c9d9aa 62%, #a9cdb9 100%);
+  }
+  .stack { position: absolute; left: 0; right: 0; bottom: 8px; padding: 0 8px; display: flex; flex-direction: column; gap: 5px; }
+  .stack.top { top: -40px; bottom: auto; }
+  .bubble { position: relative; background: #fff; border-radius: 18px; padding: 8px 12px 20px; font-size: 16.2px; line-height: 1.32; color: #0b0b0c; max-width: 312px; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); letter-spacing: -0.15px; }
+  .bubble.in { align-self: flex-start; border-bottom-left-radius: 6px; }
+  .bubble.out { align-self: flex-end; background: #e1f7cb; border-bottom-right-radius: 6px; }
+  .bubble.wide { max-width: 386px; width: 100%; }
+  .bubble .t { position: absolute; right: 11px; bottom: 5px; font-size: 11.5px; color: #8b8f93; }
+  .bubble.out .t { color: #5fa55a; }
+  .bubble p + p { margin-top: 14px; }
+  .bubble ul { list-style: none; }
+  .bubble li::before { content: '•'; margin: 0 7px 0 2px; color: #444; }
+  .voice { display: flex; align-items: center; gap: 10px; padding: 6px 4px 18px 2px; min-width: 240px; }
+  .play { width: 42px; height: 42px; border-radius: 50%; background: #4fae4e; display: grid; place-items: center; color: #fff; flex: none; }
+  .play svg { width: 18px; height: 18px; margin-left: 2px; }
+  .wave { display: flex; align-items: center; gap: 2.4px; height: 28px; }
+  .wave i { display: block; width: 2.6px; border-radius: 2px; background: #4fae4e; }
+  .dur { position: absolute; left: 60px; bottom: 5px; font-size: 12px; color: #5fa55a; }
+  .btn { background: var(--btn); color: #fff; border-radius: 12px; min-height: 44px; display: grid; place-items: center; text-align: center; padding: 8px 14px; font-size: 16px; font-weight: 600; line-height: 1.2; letter-spacing: -0.1px; }
+  .btn.head { background: var(--btn-head); font-weight: 500; }
+  .composer { position: absolute; left: 0; right: 0; bottom: 0; height: 84px; background: #f6f6f6; border-top: 0.5px solid rgba(0,0,0,0.12); display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px 0; }
+  .composer .ic { width: 30px; height: 36px; display: grid; place-items: center; color: #8a8a8e; }
+  .composer .ic svg { width: 26px; height: 26px; }
+  .composer .field { flex: 1; height: 36px; border-radius: 18px; border: 0.5px solid rgba(0,0,0,0.18); background: #fff; display: flex; align-items: center; padding-left: 14px; color: #a7a7ab; font-size: 17px; }
+  .home { position: absolute; bottom: 8px; left: 50%; width: 140px; height: 5px; border-radius: 3px; background: #0b0b0c; transform: translateX(-50%); z-index: 6; }
+  em { font-style: italic; }
+</style>
+</head>
+<body>
+  <div class="status">
+    <span class="time">9:41</span>
+    <span class="icons" id="icons"></span>
+  </div>
+  <div class="header">
+    <div class="back" id="back"></div>
+    <div class="title"><b>Haqdar</b><span>bot</span></div>
+    <div class="avatar">ह</div>
+  </div>
+  <div class="chat"><div class="stack" id="stack"></div></div>
+  <div class="composer">
+    <div class="ic" id="plus"></div>
+    <div class="field">Message</div>
+    <div class="ic" id="mic"></div>
+  </div>
+  <div class="home"></div>
+
+<script type="module">
+  const icon = async (weight, name) => (await (await fetch(`/node_modules/@phosphor-icons/core/assets/${weight}/${name}.svg`)).text()).replace('<svg ', '<svg fill="currentColor" ');
+  document.getElementById('icons').innerHTML =
+    (await icon('fill', 'cell-signal-full-fill')) + (await icon('fill', 'wifi-high-fill')) + (await icon('fill', 'battery-full-fill')).replace('<svg ', '<svg class="batt" ');
+  document.getElementById('back').innerHTML = await icon('regular', 'caret-left');
+  document.getElementById('plus').innerHTML = await icon('regular', 'plus-circle');
+  document.getElementById('mic').innerHTML = await icon('regular', 'microphone');
+  const play = await icon('fill', 'play-fill');
+
+  const s = new URLSearchParams(location.search).get('s') || 'a';
+  const stack = document.getElementById('stack');
+  const btns = (list) => list.map(([t, head]) => `<div class="btn${head ? ' head' : ''}">${t}</div>`).join('');
+  const bars = [8,14,20,12,24,16,26,10,18,22,12,26,20,14,24,10,16,22,18,12,20,14,8,18,24,12,16,10];
+
+  const screens = {
+    a: `
+      <div class="bubble in wide"><p>Area set to <b>rural</b>. Now for the family's details.</p>
+        <p>Please record ONE voice note covering:<br>1) name and age<br>2) monthly household income<br>3) number of people in the family<br>4) number of children and each child's age<br>5) who is the main earner and what work do they do?<br>6) caste category (General/OBC/SC/ST)<br>7) type of house (kutcha/pucca/homeless)<br>8) do they own land<br>9) ration card type if any<br>…</p>
+        <span class="t">10:41</span></div>
+      <div class="bubble out"><div class="voice"><div class="play">${play}</div><div class="wave">${bars.map((h) => `<i style="height:${h}px"></i>`).join('')}</div></div>
+        <span class="dur">0:52</span><span class="t">10:42 ✓✓</span></div>
+      <div class="bubble in">Got it — transcribing and reading the answers… 🧾<span class="t">10:42</span></div>`,
+    b: `
+      <div class="bubble in wide"><ul>
+        <li><b>Caste category:</b> SC</li><li><b>Type of house:</b> kutcha</li><li><b>Owns land:</b> No</li><li><b>Ration card:</b> AAY</li>
+        <li><b>Pregnant/lactating member:</b> Yes</li><li><b>Electricity connection:</b> No</li><li><b>LPG (gas) connection:</b> No</li><li><b>Bank account:</b> No</li></ul>
+        <span class="t">10:43</span></div>
+      ${btns([['✏️ Caste category: SC'], ['✏️ Type of house: kutcha'], ['✏️ Owns land: No'], ['✏️ Ration card: AAY'], ['✏️ Disability in family: No'], ['✏️ Pregnant/lactating member: Yes'], ['✏️ Electricity connection: No'], ['✏️ LPG (gas) connection: No'], ['✏️ Bank account: No'], ['✅ Generate eligibility report']])}`,
+    c: `
+      <div class="bubble in wide"><p>Review these with the family. Tap a scheme for details.</p>
+        <p>✅ Likely eligible — meets the main criteria<br>🟡 Possibly eligible — check the noted detail</p>
+        <p><em>Checked 14 scheme(s).</em></p><span class="t">10:44</span></div>
+      ${btns([['— Benefits they may be entitled to —', 1], ['✅ Pradhan Mantri Awas Yojana (Gramin)'], ['✅ Pradhan Mantri Matru Vandana Yojana'], ['✅ Pradhan Mantri Ujjwala Yojana'], ['✅ Ayushman Bharat PM-JAY'], ['🟡 PM Vishwakarma'], ['— Schemes to enroll in —', 1], ['🟡 Atal Pension Yojana'], ['📄 Send full text version']])}`,
+    d: `
+      <div class="bubble in wide"><p><b>Pradhan Mantri Ujjwala Yojana</b><br>(likely eligible)<br>A free LPG connection for women from poor households, with a stove and first refill.</p>
+        <p><b>Why:</b> The household has no LPG connection, holds an AAY ration card, and Meena is an adult woman who can apply in her own name.<br><b>To confirm, also ask:</b> whether anyone in the household already has an LPG connection<br>⚠️ <em>She will need a bank account for refill subsidies; open one alongside.</em></p>
+        <p><em>These are AI suggestions — verify before applying.</em></p><span class="t">10:45</span></div>
+      ${btns([['🔗 Official page'], ['⬅ Back to all schemes']])}`,
+  };
+  stack.innerHTML = screens[s];
+  await document.fonts.ready;
+  window.__done = true;
+</script>
+</body>
+</html>

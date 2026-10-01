@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro';
+import Loader from '../components/Loader.astro';
+import Hero from '../components/Hero.astro';
+import Index from '../components/Index.astro';
+import CategoryBand from '../components/CategoryBand.astro';
+import Chapter from '../components/Chapter.astro';
+import Practice from '../components/Practice.astro';
+import Contact from '../components/Contact.astro';
+import { projects, categories, inCategory } from '../data/projects';
+---
+<Base
+  page="home"
+  title="Oblune Studio: apps, AI tools, websites and stores by Bharat Khanna"
+  description="Oblune is the one-person studio of Bharat Khanna in New Delhi. iOS apps, AI tools, web platforms and Shopify stores, designed and built end to end. Case studies, and the code for each, inside."
+>
+  <Loader />
+  <div class="sky" data-sky aria-hidden="true"></div>
+  <main id="main" class="main" aria-busy="true">
+    <Hero />
+    <Index />
+    <div class="work">
+      {categories.map((c) => (
+        <>
+          <CategoryBand category={c} />
+          {inCategory(c.id).map((p) => <Chapter project={p} index={projects.indexOf(p)} total={projects.length} />)}
+        </>
+      ))}
+    </div>
+    <Practice />
+  </main>
+  <Contact />
+</Base>
+
+<style is:global>
+  .main { position: relative; overflow-x: clip; }
+  /* the headline paints at once, under the loader (so it counts as the first contentful moment),
+     and is lifted away just before the loader clears; the rest waits for the intro */
+  html.quick.js [data-hero-title] .hero__line, html.quick.js [data-hero-foot] { opacity: 0; }
+</style>

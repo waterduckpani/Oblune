@@ -1,0 +1,85 @@
+---
+// A browser window over the page for the live products that allow being framed. Sites that refuse
+// (X-Frame-Options: DENY) are never faked with captures: their links open the real site in a new tab.
+import Icon from './Icon.astro';
+import { projects } from '../data/projects';
+const data = Object.fromEntries(
+  projects.filter((p) => p.live?.embed).map((p) => [p.slug, { name: p.name, href: p.live!.href, host: p.live!.host, label: p.live!.label }]),
+);
+---
+<script type="application/json" data-live-data set:html={JSON.stringify(data)} />
+<dialog class="lw" data-live-dialog data-lenis-prevent aria-label="Live site" data-device="desktop">
+  <div class="lw__win" data-live-win>
+    <div class="lw__bar">
+      <div class="lw__lights">
+        <button class="lw__light lw__light--close" type="button" data-live-close aria-label="Close"><Icon name="x" class="lw__li" /></button>
+        <span class="lw__light"></span><span class="lw__light"></span>
+      </div>
+      <div class="lw__url">
+        <svg class="lw__lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5" fill="currentColor" /><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" fill="none" stroke="currentColor" stroke-width="1.3" /></svg>
+        <span data-live-host>site</span>
+        <span class="lw__mode meta">Live</span>
+      </div>
+      <div class="lw__seg" role="group" aria-label="Screen size">
+        <button type="button" data-live-device="desktop" aria-pressed="true">Desktop</button>
+        <button type="button" data-live-device="phone" aria-pressed="false">Phone</button>
+      </div>
+      <button class="lw__btn" type="button" data-live-reload aria-label="Reload"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.46-3.54M13 3v2.6h-2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+      <a class="lw__out" href="/" target="_blank" rel="noopener" data-live-out><span>Open</span><Icon name="arrow-up-right" class="lw__out-i" /></a>
+    </div>
+    <div class="lw__body" data-live-body></div>
+  </div>
+</dialog>
+
+<style>
+  .lw {
+    --lw-bg: #0e0e10;
+    width: min(1320px, calc(100vw - 48px)); height: min(900px, calc(100svh - 48px));
+    max-width: none; max-height: none; padding: 0; border: 0; background: transparent; overflow: visible;
+    color: #ececee;
+  }
+  .lw::backdrop { background: rgb(12 12 14 / 0.55); backdrop-filter: blur(6px); }
+  .lw__win {
+    width: 100%; height: 100%; display: grid; grid-template-rows: 50px minmax(0, 1fr);
+    background: var(--lw-bg); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.07) inset, 0 40px 120px -30px rgb(0 0 0 / 0.6);
+  }
+  .lw__bar { display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; background: linear-gradient(#17171a, #121215); border-bottom: 1px solid rgb(255 255 255 / 0.07); min-width: 0; }
+  .lw__lights { display: flex; gap: 8px; flex: none; }
+  .lw__light { width: 12px; height: 12px; border-radius: 50%; background: #34343a; border: 0; padding: 0; display: grid; place-items: center; }
+  .lw__light--close { background: #e6a79e; cursor: pointer; }
+  :global(.lw__li) { width: 8px; height: 8px; opacity: 0; color: #2a1512; transition: opacity 0.2s; }
+  .lw__lights:hover :global(.lw__li), .lw__light--close:focus-visible :global(.lw__li) { opacity: 1; }
+  .lw__url {
+    flex: 1; min-width: 0; height: 32px; margin: 0 auto; max-width: 440px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 10px; background: #1b1b1f; font-size: 13.5px; color: #c9cace; white-space: nowrap; overflow: hidden;
+  }
+  .lw__lock { width: 12px; height: 12px; opacity: 0.6; flex: none; }
+  .lw__mode { padding: 2px 7px; border-radius: 6px; background: #1f3326; color: #9fd8ae; font-size: 10.5px; }
+  .lw__seg { display: flex; padding: 3px; border-radius: 10px; background: #1b1b1f; flex: none; }
+  .lw__seg button { height: 26px; padding: 0 12px; border: 0; border-radius: 7px; background: none; color: #a3a4aa; font-size: 12.5px; font-weight: 560; cursor: pointer; }
+  .lw__seg button[aria-pressed='true'] { background: #34343a; color: #ececee; }
+  .lw__btn { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px; background: none; color: #a3a4aa; cursor: pointer; flex: none; }
+  .lw__btn:hover { background: #1f1f23; color: #ececee; }
+  .lw__btn svg { width: 16px; height: 16px; }
+  .lw__out { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; background: #ececee; color: #141416; font-size: 13px; font-weight: 600; flex: none; }
+  :global(.lw__out-i) { width: 13px; height: 13px; }
+  .lw__body { position: relative; min-height: 0; overflow: hidden; background: #0b0b0d; }
+  .lw__body :global(.lw__frame) { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+  /* the phone: a real phone's viewport, in a frame */
+  .lw[data-device='phone'] .lw__body { display: grid; place-items: center; background: radial-gradient(80% 70% at 50% 40%, #1d1d22, #0b0b0d); }
+  .lw__body :global(.lw__phone) {
+    position: relative; height: min(820px, calc(100% - 40px)); aspect-ratio: 402 / 874; border-radius: 46px; padding: 10px;
+    background: linear-gradient(145deg, #3a3b40, #1a1a1d 40%, #2c2d31); box-shadow: 0 30px 80px -20px #000, inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  }
+  .lw__body :global(.lw__screen) { position: relative; width: 100%; height: 100%; border-radius: 37px; overflow: hidden; background: #fff; }
+  .lw__body :global(.lw__screen .lw__frame) { width: 402px; height: 874px; transform-origin: 0 0; }
+  .lw__body :global(.lw__loading) { position: absolute; inset: 0; display: grid; place-items: center; color: #6d6e75; font-family: var(--mono); font-size: 12px; pointer-events: none; transition: opacity 0.5s; }
+  @media (max-width: 860px) {
+    .lw { width: 100vw; height: 100svh; }
+    .lw__win { border-radius: 0; }
+    .lw__seg, .lw__btn { display: none; }
+    .lw__url { justify-content: flex-start; }
+  }
+</style>

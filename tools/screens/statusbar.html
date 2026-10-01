@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- An iOS status bar (402x54pt), transparent, for screens captured without one. ?theme=light|dark -->
+<html><head><meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 402px; height: 54px; background: transparent; overflow: hidden; }
+  body { font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .status { height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 44px; }
+  .time { font-weight: 600; font-size: 17px; letter-spacing: -0.2px; }
+  .icons { display: flex; gap: 6px; align-items: center; }
+  svg { width: 18px; height: 18px; }
+  .batt { width: 27px; height: 27px; }
+</style></head>
+<body><div class="status"><span class="time">9:41</span><span class="icons" id="icons"></span></div>
+<script type="module">
+  const theme = new URLSearchParams(location.search).get('theme') || 'light';
+  document.body.style.color = theme === 'dark' ? '#f4f4f5' : '#0b0b0c';
+  const icon = async (name) => (await (await fetch(`/node_modules/@phosphor-icons/core/assets/fill/${name}.svg`)).text()).replace('<svg ', '<svg fill="currentColor" ');
+  document.getElementById('icons').innerHTML = (await icon('cell-signal-full-fill')) + (await icon('wifi-high-fill')) + (await icon('battery-full-fill')).replace('<svg ', '<svg class="batt" ');
+  await document.fonts.ready; window.__done = true;
+</script></body></html>

@@ -1,0 +1,266 @@
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Variable.woff2') format('woff2');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-VariableItalic.woff2') format('woff2');
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* The ink is registered so it can ease between day and night. */
+@property --ink { syntax: '<color>'; inherits: true; initial-value: #141416; }
+@property --ink-2 { syntax: '<color>'; inherits: true; initial-value: #55565b; }
+@property --ink-3 { syntax: '<color>'; inherits: true; initial-value: #8a8b90; }
+@property --line { syntax: '<color>'; inherits: true; initial-value: rgba(20, 20, 22, 0.12); }
+@property --line-strong { syntax: '<color>'; inherits: true; initial-value: rgba(20, 20, 22, 0.28); }
+@property --bg { syntax: '<color>'; inherits: true; initial-value: #ecece9; }
+
+:root {
+  /* The page is daylight and the metal is the moon. At the very end, night falls. */
+  color-scheme: light;
+  --day: #ecece9;
+  --night: #0a0a0c;
+  --bg: #ecece9;
+  --bg-raised: #f4f4f2;
+  --ink: #141416;
+  --ink-2: #55565b;
+  --ink-3: #8a8b90;
+  --line: rgba(20, 20, 22, 0.12);
+  --line-strong: rgba(20, 20, 22, 0.28);
+
+  --font: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', monospace;
+
+  --max: 1680px;
+  --gutter: clamp(16px, 2.4vw, 36px);
+  --section: clamp(120px, 15vw, 240px);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* z-index scale */
+  --z-canvas: 1;
+  --z-content: 2;
+  --z-nav: 20;
+  --z-skip: 30;
+
+  transition: --ink 0.7s var(--ease-out), --ink-2 0.7s var(--ease-out), --ink-3 0.7s var(--ease-out),
+    --line 0.7s var(--ease-out), --line-strong 0.7s var(--ease-out), --bg 0.7s var(--ease-out);
+}
+:root[data-night='true'] {
+  color-scheme: dark;
+  --bg: #0a0a0c;
+  --ink: #ecece9;
+  --ink-2: #a2a3a8;
+  --ink-3: #6c6d73;
+  --line: rgba(236, 236, 233, 0.14);
+  --line-strong: rgba(236, 236, 233, 0.32);
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--day);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: clamp(16px, 1.05vw, 18px);
+  line-height: 1.5;
+  font-weight: 420;
+  font-feature-settings: 'ss01' on;
+}
+
+img, svg, canvas { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+h1, h2, h3, p, ul, ol, dl, dd, figure { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+
+::selection { background: var(--ink); color: var(--bg); }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--max);
+  margin-inline: auto;
+  padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+}
+
+/* anchor targets clear the fixed nav */
+[id] { scroll-margin-top: 88px; }
+
+a, button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3 { text-wrap: balance; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.skip {
+  position: fixed; top: 12px; left: 12px; z-index: var(--z-skip);
+  padding: 12px 18px; border-radius: 999px; background: var(--ink); color: var(--bg);
+  transform: translateY(-160%); transition: transform 0.3s var(--ease-out);
+}
+.skip:focus-visible { transform: none; }
+
+/* Type roles */
+.meta {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+/* Buttons: pills. Solid = ink, ghost = hairline ring.
+   On hover the fill crosses the button with a curved edge, like the terminator crossing the moon,
+   entering from the side the pointer came in (--from is set by fx.ts). */
+.btn {
+  --from: 0%;
+  position: relative;
+  display: inline-flex; align-items: center; gap: 12px;
+  min-height: 48px; padding: 0 22px 0 24px;
+  border-radius: 999px;
+  font-weight: 560; font-size: 15px; letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden; isolation: isolate;
+  transition: color 0.5s var(--ease-out), transform 0.2s var(--ease-out), box-shadow 0.4s;
+}
+.btn:active { transform: scale(0.97); }
+.btn--solid { background: var(--ink); color: var(--bg); }
+.btn--ghost { box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--ink); }
+.btn::after {
+  content: ''; position: absolute; inset: -2px; z-index: -1; border-radius: inherit;
+  clip-path: ellipse(0% 120% at var(--from) 50%);
+  transition: clip-path 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn--solid::after { background: color-mix(in srgb, var(--ink) 72%, var(--bg)); }
+.btn--ghost::after { background: var(--ink); }
+.btn:hover::after, .btn:focus-visible::after { clip-path: ellipse(160% 160% at var(--from) 50%); }
+.btn--ghost:hover, .btn--ghost:focus-visible { color: var(--bg); }
+.btn__arrow { width: 14px; height: 14px; transition: transform 0.55s var(--ease-out); }
+.btn:hover .btn__arrow { transform: translate(2px, -2px) rotate(8deg); }
+
+/* A wave of weight passes through a label's letters on hover (Satoshi is variable). */
+.wave { display: inline-block; white-space: nowrap; }
+.wave__c { display: inline-block; font-variation-settings: 'wght' var(--w0, 560); }
+:is(a, button, [data-wave-host]):hover .wave__c,
+:is(a, button, [data-wave-host]):focus-visible .wave__c {
+  animation: wax 0.62s var(--ease-in-out) both;
+  animation-delay: calc(var(--i) * 26ms);
+}
+@keyframes wax {
+  0% { font-variation-settings: 'wght' var(--w0, 560); translate: 0 0; }
+  45% { font-variation-settings: 'wght' calc(var(--w0, 560) + 280); translate: 0 -1px; }
+  100% { font-variation-settings: 'wght' var(--w0, 560); translate: 0 0; }
+}
+
+.link-underline {
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.5s var(--ease-out);
+}
+.link-underline:hover { background-size: 0% 1px; background-position: 100% 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* kinetic letters keep their layout steady while the weight changes */
+.kchar { display: inline-block; }
+
+/* The sky: a fixed layer that darkens to night at the end of the page. */
+.sky { position: fixed; inset: 0; z-index: 0; background: var(--night); opacity: 0; pointer-events: none; }
+
+/* Film grain, so the daylight reads as a surface, not a screen. Transform-only, so it stays on the compositor. */
+.grain { position: fixed; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; opacity: 0.055; }
+.grain::before {
+  content: ''; position: absolute; inset: -100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 0.9s steps(6) infinite;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); } 20% { transform: translate(-6%, 4%); } 40% { transform: translate(5%, -7%); }
+  60% { transform: translate(-3%, 8%); } 80% { transform: translate(7%, 2%); } 100% { transform: translate(0, 0); }
+}
+:root[data-night='true'] .grain { opacity: 0.075; }
+@media (prefers-reduced-motion: reduce) { .grain::before { animation: none; } }
+
+/* The pointer, redrawn (lib/cursor.ts): an ink dot, a ring on a spring, and a word when there is one to say. */
+html.has-cur, html.has-cur * { cursor: none !important; }
+html.has-cur :is(input:not([type='radio']):not([type='checkbox']), textarea, [contenteditable='true']) { cursor: text !important; }
+.cur { position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+.cur[data-on='true'] { opacity: 1; }
+.cur__dot, .cur__ring, .cur__label { position: absolute; left: 0; top: 0; will-change: transform; }
+.cur__dot, .cur__ring { mix-blend-mode: difference; }
+.cur__dot::before {
+  content: ''; position: absolute; left: -3px; top: -3px; width: 6px; height: 6px; border-radius: 50%; background: #fff;
+  transition: scale 0.35s var(--ease-out);
+}
+.cur__ring i {
+  position: absolute; left: calc(var(--r) / -2); top: calc(var(--r) / -2); width: var(--r); height: var(--r); border-radius: 50%;
+  --r: 34px;
+  box-shadow: inset 0 0 0 1.5px #fff;
+  transition: width 0.55s var(--ease-out), height 0.55s var(--ease-out), left 0.55s var(--ease-out), top 0.55s var(--ease-out), opacity 0.3s, scale 0.3s var(--ease-out);
+}
+/* the fill waxes in from the right, like the lit side of the moon */
+.cur__ring i::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; background: #fff;
+  clip-path: inset(0 0 0 100% round 50%); transition: clip-path 0.6s var(--ease-out);
+}
+.cur[data-state='press'] .cur__ring i { --r: 50px; }
+.cur[data-state='press'] .cur__ring i::after { clip-path: inset(0 0 0 0 round 50%); }
+.cur[data-state='press'] .cur__dot::before { scale: 0; }
+.cur[data-state='label'] .cur__ring i { --r: 22px; }
+.cur[data-state='text'] .cur__ring i { opacity: 0; scale: 0.4; }
+.cur[data-state='text'] .cur__dot::before { scale: 0; }
+.cur.is-down .cur__ring i { scale: 0.82; }
+.cur__label span {
+  position: absolute; left: 0; top: 0; translate: 16px 16px; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 15px 0 13px; border-radius: 999px;
+  background: var(--ink); color: var(--bg);
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.04em; line-height: 1;
+  opacity: 0; scale: 0.4; transition: opacity 0.3s var(--ease-out), scale 0.5s cubic-bezier(0.2, 1.4, 0.3, 1);
+}
+.cur__label span::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.cur[data-state='label'] .cur__label span { opacity: 1; scale: 1; }
+@media (pointer: coarse) { .cur { display: none; } }
+
+/* The WebGL world: one canvas for the visit, shown on the home page. While the loader is up the
+   moon is drawn above it. */
+.world { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; }
+.world--top { z-index: 55; }
+html.quick .world--top { z-index: 1; }
+.view { position: relative; }
+.world[hidden] { display: none; }
