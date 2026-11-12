@@ -4,3 +4,9 @@ dist/
 .DS_Store
 .env*
 public/_stage/
+
+# browser-tool snapshots
+.playwright-mcp/
+
+# brainstorm mockups
+.superpowers/

@@ -1,0 +1,150 @@
+---
+import Icon from './Icon.astro';
+import Moon from './Moon.astro';
+import { PHASES } from '../lib/phase';
+import { bySlug } from '../data/projects';
+
+// Who Oblune is, in one screen. Four disciplines, four quarters of one moon: by the last it is full.
+// That is the point: one person, the whole product. Each discipline links to the work that shows it.
+const disciplines = [
+  { name: 'Product design', text: 'Research, flows, interfaces and the design system, carried into the code as tokens.', uses: ['mull', 'bite', 'power-policy'] },
+  { name: 'Engineering', text: 'iOS in Flutter, the web in Next.js and Astro, backends on Supabase and Postgres.', uses: ['stocky', 'mull', 'article'] },
+  { name: 'AI systems', text: 'Agents with real guardrails, LLM pipelines, recommendation and on-device speech.', uses: ['alfard', 'haqdar', 'bite'] },
+  { name: 'Commerce', text: 'Shopify stores for brands: the theme, the catalogue, payments and the path to an order.', uses: ['viraj-mahajan'] },
+];
+// Only numbers that can be checked: each says where it comes from.
+const facts = [
+  { v: '8', k: 'products designed and built in 2026, six of them my own' },
+  { v: '6,800+', k: 'installs of Alfard, the open-source agent, on PyPI and npm' },
+  { v: '500+', k: 'stories Article has written and published with no human in the loop' },
+  { v: 'Finalist', k: 'USAII Global AI Hackathon 2026, with Haqdar' },
+];
+const stack = ['Flutter', 'Next.js', 'Astro', 'Shopify', 'Supabase', 'Postgres', 'pgvector', 'FastAPI', 'Python', 'Whisper', 'MCP', 'three.js', 'Razorpay', 'Telegram'];
+---
+<section id="studio" class="studio" data-studio aria-labelledby="studio-title">
+  <div class="container studio__top">
+    <h2 class="studio__title" id="studio-title" data-words>One person, <em>the whole product.</em></h2>
+  </div>
+  <div class="container studio__grid">
+    <div class="studio__bio" data-reveal>
+      <p>
+        I’m Bharat Khanna, a self-taught designer and developer in New Delhi. I started out writing
+        server systems for a large multiplayer game community, moved on to Shopify builds for fashion
+        brands, and spent 2026 shipping products of my own.
+      </p>
+      <p>
+        Oblune is the name I build under. I do the research, the interface and the code, so nothing is
+        lost between a designer and a developer.
+      </p>
+    </div>
+
+    <ol class="studio__list">
+      {disciplines.map((d, i) => (
+        <li class="studio__row" data-studio-row={i} data-reveal>
+          <span class="studio__string" data-string aria-hidden="true"></span>
+          <p class="studio__q">{String(i + 1).padStart(2, '0')}</p>
+          <div class="studio__what">
+            <h3 class="studio__name">{d.name}</h3>
+            <p class="studio__text">{d.text}</p>
+            <ul class="studio__uses" aria-label={`Where to see ${d.name.toLowerCase()}`}>
+              {d.uses.map((s) => { const p = bySlug(s); return (
+                <li><a class="studio__use" href={`/work/${p.slug}`} data-cursor="Case study"><Moon lit={PHASES[p.phase].lit} size={13} /><span data-wave>{p.name}</span></a></li>
+              ); })}
+            </ul>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+
+  <dl class="container studio__facts">
+    {facts.map((f) => (
+      <div class="studio__fact" data-reveal>
+        <dt class="studio__fact-v">{f.v}</dt>
+        <dd class="studio__fact-k">{f.k}</dd>
+      </div>
+    ))}
+  </dl>
+
+  <div class="container studio__code" data-reveal>
+    <a class="studio__gh" href="https://github.com/waterduckpani" target="_blank" rel="noopener" data-cursor="Code">
+      <Icon name="github" class="studio__gh-icon" />
+      <span data-wave>github.com/waterduckpani</span>
+      <Icon name="arrow-up-right" class="studio__gh-arrow" />
+    </a>
+    <p class="studio__gh-note">The source for most of the work above, open to read.</p>
+  </div>
+
+  <div class="studio__marquee" aria-label={`Tools: ${stack.join(', ')}`}>
+    <div class="studio__track" data-marquee aria-hidden="true">
+      {[0, 1].map(() => (
+        <span class="studio__set">
+          {stack.map((s) => (<><span class="studio__tool">{s}</span><svg class="studio__sep" viewBox="-40 -40 80 80"><path transform="rotate(24)" fill="currentColor" fill-rule="evenodd" d="M35 0A35 35 0 1 1 -35 0A35 35 0 1 1 35 0Z" /></svg></>))}
+        </span>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .studio { position: relative; z-index: 3; padding-top: clamp(160px, 24vh, 300px); }
+  .studio__top { position: relative; }
+  .studio__title { font-size: clamp(56px, 9.4vw, 184px); line-height: 0.88; letter-spacing: -0.065em; font-weight: 520; margin-left: -0.05em; padding-bottom: 0.1em; max-width: 9.5em; }
+  .studio__title em { font-weight: 300; }
+  .studio__grid { margin-top: clamp(56px, 9vh, 120px); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: start; }
+  .studio__bio { grid-column: 1 / span 5; display: grid; gap: 16px; font-size: clamp(18px, 1.35vw, 22px); line-height: 1.45; letter-spacing: -0.014em; max-width: 34ch; }
+  .studio__bio p + p { color: var(--ink-2); }
+
+  .studio__list { grid-column: 7 / -1; }
+  .studio__row { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 12px; padding: clamp(22px, 2.6vw, 34px) 0; }
+  .studio__q { font-family: var(--mono); font-size: 12px; padding-top: 0.75em; color: var(--ink-2); }
+  .studio__name { font-size: clamp(28px, 2.6vw, 46px); letter-spacing: -0.045em; font-weight: 540; line-height: 1; }
+  .studio__text { margin-top: 10px; max-width: 42ch; font-size: 16px; line-height: 1.45; color: var(--ink-2); }
+  .studio__uses { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .studio__use {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 10px; border-radius: 17px;
+    font-size: 14px; font-weight: 560; color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--line-strong); transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+  }
+  .studio__use:hover, .studio__use:focus-visible { background: var(--ink); color: var(--bg); box-shadow: none; }
+
+  .studio__facts {
+    position: relative; margin-top: clamp(80px, 9vw, 150px);
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gutter);
+  }
+  .studio__fact { padding-top: 18px; border-top: 1px solid var(--ink); }
+  .studio__fact-v { font-size: clamp(40px, 4.6vw, 88px); line-height: 0.95; letter-spacing: -0.06em; font-weight: 520; }
+  .studio__fact-k { margin-top: 14px; font-size: 15px; line-height: 1.4; color: var(--ink-2); max-width: 26ch; }
+
+  .studio__code { margin-top: clamp(64px, 7vw, 110px); display: flex; align-items: baseline; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .studio__gh {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-size: clamp(26px, 3.2vw, 56px); font-weight: 540; letter-spacing: -0.05em;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0% 2px no-repeat; padding-bottom: 6px;
+    transition: background-size 0.7s var(--ease-out);
+  }
+  .studio__gh:hover, .studio__gh:focus-visible { background-size: 100% 2px; }
+  :global(.studio__gh-icon) { width: 0.8em; height: 0.8em; }
+  :global(.studio__gh-arrow) { width: 0.5em; height: 0.5em; transition: transform 0.6s var(--ease-out); }
+  .studio__gh:hover :global(.studio__gh-arrow) { transform: translate(4px, -4px); }
+  .studio__gh-note { color: var(--ink-2); }
+
+  .studio__marquee {
+    margin-top: clamp(64px, 7vw, 120px);
+    overflow: hidden; position: relative;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+            mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .studio__track { display: flex; width: max-content; will-change: transform; }
+  .studio__set { display: flex; align-items: center; }
+  .studio__tool { font-size: clamp(32px, 4.6vw, 86px); font-weight: 340; letter-spacing: -0.05em; white-space: nowrap; padding: 0 0.34em; line-height: 1.2; }
+  .studio__sep { width: clamp(9px, 0.9vw, 14px); height: clamp(9px, 0.9vw, 14px); color: var(--ink-3); flex: none; }
+
+  @media (max-width: 860px) {
+    .studio__grid { grid-template-columns: 1fr; row-gap: 40px; }
+    .studio__bio, .studio__list { grid-column: 1; }
+    .studio__title { font-size: clamp(50px, 14vw, 90px); }
+    .studio__facts { grid-template-columns: 1fr 1fr; row-gap: 32px; }
+    .studio__fact-k { font-size: 14px; }
+  }
+</style>

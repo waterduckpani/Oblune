@@ -19,7 +19,7 @@ export type PageHandle = {
   /** Played as the curtain lifts. */
   intro?(): void;
 };
-export type PageModule = { mount(ctx: PageCtx): PageHandle | Promise<PageHandle> };
+export type PageModule = { prepare?(): Promise<void>; mount(ctx: PageCtx): PageHandle | Promise<PageHandle> };
 
 /** The things that live for the whole visit, shared by every page. */
 export const app = {

@@ -1,15 +1,16 @@
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
-import { World } from '../lib/world/World';
-import { EMBLEM_FILL } from '../lib/world/EmblemLayer';
-import { Line, Bead, type Pt } from '../lib/world/line';
-import { buildOrbit, headAt, pointAt, HEAD, type OrbitPath } from '../lib/orbitPath';
-import { emblemPath, litToShader, PHASES } from '../lib/phase';
+import { getWorld, prepareWorld, RibbonDriver, pageBox, textBox } from '../lib/world/stage';
+import { EMBLEM_FILL } from '../lib/world/Moon';
+import { orbit, type RibbonPoint } from '../lib/world/Ribbon';
+import { emblemPath } from '../lib/phase';
+import { phaseName } from '../lib/moonphase';
 import { sound } from '../lib/audio';
 import { app, type PageCtx, type PageHandle } from '../lib/app';
 import { enter } from '../lib/enter';
-import { kinetic, skewOnScroll, tonight, chromeMark, marquee } from '../lib/fx';
+import { kinetic, skewOnScroll, tonight, chromeMark, marquee, riseWords, resizeFilter } from '../lib/fx';
+import { strings } from '../lib/strings';
 
 const EASE = 'expo.out';
 const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -17,29 +18,11 @@ const smooth = (a: number, b: number, v: number) => { const t = clamp((v - a) / 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const damp = (from: number, to: number, l: number, dt: number) => from + (to - from) * (1 - Math.exp(-l * dt));
+const TAU = Math.PI * 2;
 const mobileQ = matchMedia('(max-width: 860px)');
 
-// ---------- The world outlives the page: made on the first visit home, reused on every return ----------
-let world: World | null = null;
-let worldFailed = false;
-let line: Line | null = null;
-let bead: Bead | null = null;
-function getWorld() {
-  if (world || worldFailed) return world;
-  try {
-    world = new World(document.querySelector<HTMLCanvasElement>('[data-world]')!);
-    line = new Line({ width: 2.2, ghostWidth: 3, ghostAlpha: 0.3, dash: 11, alpha: 0.9 });
-    bead = new Bead();
-    world.back.add(line.mesh);
-    world.front.add(bead.mesh);
-    Object.assign((window as unknown as { __oblune: object }).__oblune ?? {}, { world, line, bead });
-  } catch (err) {
-    console.warn('WebGL unavailable, showing stills instead', err);
-    worldFailed = true;
-    document.documentElement.classList.add('no-webgl');
-  }
-  return world;
-}
+/** The stage is built before the page mounts, a step per task. */
+export const prepare = prepareWorld;
 
 export function mount({ scope, view, first }: PageCtx): PageHandle {
   const { reduced, coarse } = app;
@@ -60,531 +43,395 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
     canvas.hidden = false;
     if (!quick && !reduced) canvas.classList.add('world--top');
     w.resize();
+    w.invalidate();
+    // back from a case page: the ribbon takes its home thickness and colour again
+    w.ribbon.setRadius(mobileQ.matches ? 8 : 13);
+    w.ribbon.setTail(0);
+    w.ribbon.opacity = 1;
+    w.ribbon.setNight(0);
   }
-  const chapters = $$('[data-chapter]');
-  w?.bindChapters(chapters);
 
-  // ---------- The orbit line: drawn by the scroll, played by the pointer ----------
-  let orbit: OrbitPath | null = null;
-  let buckets: number[][] = [];
-  const BUCKET = 60;
-  const buildLine = () => {
-    if (!w || !line) return;
-    orbit = buildOrbit({ vh: innerHeight, mobile: mobileQ.matches });
-    if (!orbit) return;
-    line.setPoints(orbit.pts);
-    ((window as unknown as { __oblune?: Record<string, unknown> }).__oblune ?? {}).orbit = orbit;
-    line.material.uniforms.uTail.value = 0;
-    line.material.uniforms.uFade.value = 70;
-    buckets = [];
-    orbit.pts.forEach((p, i) => { const b = Math.floor(p.y / BUCKET); (buckets[b] ??= []).push(i); });
-  };
-  if (line) line.geometry.setDrawRange(0, 0);
-
-  // ---------- The moon's journey: loader → hero → index → becomes the bead → full moon at night ----------
   const anchors = {
     hero: $('[data-moon-anchor="hero"]'),
-    index: $('[data-moon-anchor="index"]'),
+    dusk: $('[data-moon-anchor="dusk"]'),
     footer: $('[data-moon-anchor="footer"]'),
   };
-  const indexSection = $('[data-index]');
-  const indexRows = $$<HTMLAnchorElement>('[data-index-row]');
-  const readout = $('[data-readout]');
-  const readoutLabel = $('[data-readout-label]');
+  const work = $('[data-work]');
+  const studio = $('[data-studio]');
   const dusk = $('[data-dusk]');
-  const sky = $('[data-sky]');
-  const storySections = $$('[data-band], [data-chapter]');
-  const bandWords = $$('[data-band-word]');
-  const practice = $('#practice');
+  const duskWords = $('.dusk__words');
   const contact = $('#contact');
-  const dial = view.querySelector<SVGSVGElement>('[data-dial]');
-  const dialSpin = view.querySelector<SVGGElement>('[data-dial-spin]');
-  const dialNeedle = view.querySelector<SVGGElement>('[data-dial-needle]');
 
   type R = { x: number; y: number; w: number };
-  const rectOf = (el: Element): R => {
+  /** The square the moon is drawn in, for a slot element (its radius is half the slot's width). */
+  const rectOf = (el: Element): R | null => {
     const r = el.getBoundingClientRect();
+    if (r.width < 2) return null;
     const d = Math.min(r.width, r.height) / EMBLEM_FILL;
     return { x: r.left + r.width / 2 - d / 2, y: r.top + r.height / 2 - d / 2, w: d };
   };
-  const around = (p: Pt, d: number): R => { const q = d / EMBLEM_FILL; return { x: p.x - q / 2, y: p.y - q / 2, w: q }; };
+  const around = (x: number, y: number, radius: number): R => { const d = (radius * 2) / EMBLEM_FILL; return { x: x - d / 2, y: y - d / 2, w: d }; };
   const mix = (a: R, b: R, t: number): R => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t) });
-  const centre = (r: R) => ({ x: r.x + r.w / 2, y: r.y + r.w / 2 });
 
   const moon = {
     load: reduced || quick ? 1 : 0,
-    form: reduced || quick ? 1 : 0,
-    merged: reduced || quick ? 1 : 0,
     turn: 0,
+    spinV: 0,
     cycle: 0,
     tilt: { x: 0, y: 0 },
     light: { x: 0, y: 0 },
-    indexLit: PHASES.crescent.lit,
-    hoverLit: -1,
-    drop: { x: 0, y: 0, r: 0, vx: 0, vy: 0, vr: 0 },
-    grabbed: false,
   };
-  const dialIn = { v: reduced ? 1 : 0 };
   const moonAlpha = { v: reduced ? 1 : 0 };
+  /** The contact moon's phase: it waxes with every part of the letter you complete. */
+  const briefLit = { v: 0.3 };
+  const duskPctEl = $('[data-dusk-pct]');
+  let duskShown = -1;
   let night = 0;
-  const LITS = chapters.map((c) => Number(c.dataset.lit));
-
-  // the bead: springs after the head, stretches as it moves, and is drawn to the pointer
-  const bd = { x: -100, y: -100, vx: 0, vy: 0, ring: 0, ringA: 0, held: false, seen: false };
-  const pulse = (big = false) => {
-    if (reduced) return;
-    gsap.fromTo(bd, { ring: big ? 10 : 7, ringA: big ? 0.8 : 0.55 }, { ring: big ? 64 : 34, ringA: 0, duration: big ? 1.1 : 0.8, ease: 'power2.out', overwrite: true });
+  // The work is a night of its own. Night rises from below the screen as a disc, slowly and then all
+  // at once, until it has taken the whole screen; the hero recedes as it comes. For the studio the day
+  // rises inside it the same way, and the work recedes. Both follow the scroll on a spring.
+  const navEl = document.querySelector<HTMLElement>('[data-nav]');
+  const heroGrid = $('.hero__grid');
+  const workHead = $('.work__head'), studioTop = $('.studio__top');
+  const metaEls = $$('.card__meta');
+  const arrived = { work: -1, studio: -1, dusk: -1 };
+  let headRecede = -1;
+  /** How far a box is inside a disc rising from (cx, cy): 1 once its farthest corner is well in. */
+  const inside = (el: Element, cx: number, cy: number, r: number) => {
+    const b = el.getBoundingClientRect();
+    const d = Math.hypot(Math.max(Math.abs(b.left - cx), Math.abs(b.right - cx)), cy - b.top) - r;
+    return Math.round(smooth(0, -80, d) * 100) / 100;
   };
+  const take = { in: 0, out: 0, dusk: 0 };
+  const recede = { hero: -1, work: -1, studio: -1 };
+  scope.add(() => { if (navEl) delete navEl.dataset.tone; w?.ribbon.setDiscs([0, 0, 0], [0, 0, 0], [0, 0, 0]); w?.night.set(1, 1, [0, 0, 0], [0, 0, 0], [0, 0, 0], 0); w?.invalidate(); });
 
-  let lastRipple = { x: 0, y: 0, t: 0 };
-  const hovering = new Set<Element>();
-  if (w && !coarse && !reduced) {
-    [anchors.hero, anchors.footer].forEach((a) => {
-      scope.on(a, 'pointerenter', () => hovering.add(a));
-      scope.on(a, 'pointerleave', () => hovering.delete(a));
+  // ---------- The hero moon: drag it through a month, or press it to play one ----------
+  // Its phase is an angle round the month: 0 new, PI full, past PI waning (drawn mirrored). At rest it
+  // is the logo's waxing gibbous, and it eases back there a moment after you let go.
+  const HOME = Math.acos(1 - 2 * 0.75);
+  const phase = { theta: HOME, v: 0, held: false, idle: 0, eighth: 0 };
+  const litOf = (th: number) => (1 - Math.cos(th)) / 2;
+  const waningOf = (th: number) => Math.sin(th) < 0;
+  const homeFor = (th: number) => HOME + Math.round((th - HOME) / TAU) * TAU;
+  const heroMoon = anchors.hero;
+  const phaseText = $('[data-hero-phase]');
+  const phaseHint = phaseText.textContent!;
+  let shownPhase = '';
+  let dragX = 0, dragMoved = 0, lastDragT = 0;
+  const touched = () => { phase.idle = 0; document.documentElement.dataset.moonTouched = ''; };
+  if (w && !reduced) {
+    // the fallback picture inside it would start a native image drag (and cancel the pointer)
+    scope.on(heroMoon, 'dragstart', (e) => e.preventDefault());
+    scope.on(heroMoon, 'pointerdown', (e) => {
+      phase.held = true; dragX = e.clientX; dragMoved = 0; lastDragT = performance.now();
+      gsap.killTweensOf(phase);
+      heroMoon.setPointerCapture(e.pointerId);
+      touched();
+    });
+    scope.on(heroMoon, 'pointermove', (e) => {
+      if (!phase.held) return;
+      const dx = e.clientX - dragX, now = performance.now();
+      dragX = e.clientX; dragMoved += Math.abs(dx);
+      // the moon's width is half a month
+      const d = (dx / heroMoon.getBoundingClientRect().width) * Math.PI;
+      phase.theta += d;
+      phase.v = lerp(phase.v, d / Math.max(0.008, (now - lastDragT) / 1000), 0.5);
+      lastDragT = now;
+      phase.idle = 0;
+    });
+    const release = () => {
+      if (!phase.held) return;
+      phase.held = false;
+      if (performance.now() - lastDragT > 90) phase.v = 0;
+      if (Math.abs(phase.v) > 9) sound.whoosh(phase.v > 0);
+    };
+    scope.on(heroMoon, 'pointerup', release);
+    scope.on(heroMoon, 'pointercancel', release);
+    scope.on(heroMoon, 'keydown', (e) => {
+      const k = (e as KeyboardEvent).key;
+      if (k !== 'ArrowRight' && k !== 'ArrowLeft') return;
+      e.preventDefault();
+      touched();
+      phase.v = 0;
+      gsap.to(phase, { theta: phase.theta + (k === 'ArrowRight' ? 1 : -1) * (TAU / 8), duration: 0.6, ease: 'power3.out', overwrite: true });
     });
   }
-  $$('[data-moon-cycle]').forEach((b) => scope.on(b, 'click', () => {
+  scope.on(heroMoon, 'click', (e) => {
+    if (dragMoved > 6) { dragMoved = 0; e.preventDefault(); return; }
     sound.arpeggio(true);
     if (reduced || !w) return;
-    w.emblem.ripple(0, 0, 1.6, w.time);
+    touched();
+    phase.v = 0;
+    gsap.to(phase, { theta: homeFor(phase.theta) + TAU, duration: 2.8, ease: 'power2.inOut', overwrite: true });
+  });
+  // the contact moon plays its phases when pressed
+  $$('#contact [data-moon-cycle]').forEach((b) => scope.on(b, 'click', () => {
+    sound.arpeggio(true);
+    if (reduced || !w) return;
     gsap.fromTo(moon, { cycle: 0 }, { cycle: 1, duration: 2.4, ease: 'none' });
-    gsap.fromTo(moon, { turn: 0 }, { turn: Math.PI * 2, duration: 2.4, ease: 'power3.inOut', onComplete: () => { moon.turn = 0; } });
+    moon.spinV += 14;
   }));
 
-  // index rows: scroll walks through them; hovering one shows its phase
-  let rowNow = -1;
-  function activeRow(i: number) {
-    if (i === rowNow) return;
-    rowNow = i;
-    indexRows.forEach((r, k) => (r.dataset.active = String(k === i)));
-    readoutLabel.textContent = indexRows[i]?.dataset.label ?? '';
-  }
-  indexRows.forEach((row) => {
-    const on = () => { moon.hoverLit = Number(row.dataset.lit); activeRow(Number(row.dataset.indexRow)); };
-    const off = () => { moon.hoverLit = -1; };
-    scope.on(row, 'pointerenter', on); scope.on(row, 'focus', on);
-    scope.on(row, 'pointerleave', off); scope.on(row, 'blur', off);
-  });
-  const indexList = $('[data-index-list]');
-  $$('[data-chip]').forEach((chip) => {
-    const on = () => {
-      indexList.dataset.focus = chip.dataset.chip!;
-      indexRows.forEach((r) => r.toggleAttribute('data-lit-cat', r.dataset.cat === chip.dataset.chip));
-    };
-    const off = () => { delete indexList.dataset.focus; indexRows.forEach((r) => r.removeAttribute('data-lit-cat')); };
-    scope.on(chip, 'pointerenter', on); scope.on(chip, 'focus', on);
-    scope.on(chip, 'pointerleave', off); scope.on(chip, 'blur', off);
-  });
-  activeRow(0);
-
-  // steps: a dot is passed once it rises above the line's head
-  const stepGroups = chapters.map((c) => {
-    const disc = c.querySelector<SVGSVGElement>('[data-disc]')!;
-    return {
-      section: c,
-      slug: c.dataset.chapter!,
-      name: c.querySelector('[data-chapter-name]')!.textContent!.trim(),
-      caseHref: c.dataset.case!,
-      items: $$('.chapter__step', c),
-      dots: $$('[data-line-step]', c),
-      caption: c.querySelector<HTMLElement>('[data-caption]')!,
-      steps: $$('.chapter__steps', c)[0],
-      panel: c.querySelector<HTMLElement>('[data-stage-panel]')!,
-      discShadow: disc.querySelector<SVGCircleElement>('[data-disc-shadow]')!,
-      ticks: $$<SVGCircleElement>('[data-tick]', disc),
-      lits: JSON.parse(disc.dataset.discLits!) as number[],
-      current: -1,
-      near: false,
-    };
-  });
-  let lastStepSound = 0;
-
-  // ---------- Practice: a moon that fills by quarters ----------
-  const prRows = $$('[data-practice-row]');
-  const prShadow = view.querySelector<SVGCircleElement>('[data-practice-shadow]');
-  const prGlint = view.querySelector<SVGRectElement>('[data-practice-glint]');
-  const prPct = view.querySelector<HTMLElement>('[data-practice-pct]');
-  const prCap = view.querySelector<HTMLElement>('[data-practice-cap]');
-  const prArcs = $$<SVGPathElement>('[data-arc]');
-  const prNums = $$<SVGTextElement>('[data-arc-n]');
-  const prNames = prRows.map((r) => r.querySelector('.practice__name')!.textContent!.trim());
-  let prNow = -1, prHover = -1, prPassed = 0;
-  const prCount = { v: 25 };
-  function practiceQuarter(q: number) {
-    if (q === prNow) return;
-    const first = prNow === -1;
-    prNow = q;
-    practice.dataset.q = String(q);
-    const lit = (q + 1) / 4;
-    prRows.forEach((r, i) => (r.dataset.active = String(i === q)));
-    prArcs.forEach((a, i) => (a.dataset.on = String(i <= q)));
-    prNums.forEach((a, i) => (a.dataset.on = String(i <= q)));
-    prShadow?.setAttribute('cx', (-2 * 48 * lit - (q === 3 ? 12 : 0)).toFixed(2));
-    if (prGlint) prGlint.style.transform = `translate(${(q - 1.5) * 14}px, ${(q - 1.5) * 8}px)`;
-    if (prCap) prCap.textContent = q === 3 ? 'The whole product, by one person' : `of the whole product · ${prNames[q]}`;
-    if (prPct) {
-      if (reduced || first) prPct.textContent = String(Math.round(lit * 100));
-      else gsap.to(prCount, { v: lit * 100, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: () => { prPct.textContent = String(Math.round(prCount.v)); } });
+  /** Each frame: the hero moon's phase coasts, settles home when left alone, and says what it is. */
+  function phaseFrame(dt: number, away: boolean) {
+    const tweening = gsap.isTweening(phase);
+    if (!phase.held && !tweening) {
+      phase.theta += phase.v * dt;
+      phase.v *= Math.exp(-2.6 * dt);
+      if (Math.abs(phase.v) < 0.3) {
+        phase.idle += dt;
+        // a moment after you let go (at once, if you have scrolled on), it eases back to the logo
+        if (phase.idle > 1.6 || away) { phase.theta = damp(phase.theta, homeFor(phase.theta), away ? 6 : 2.4, dt); phase.v = damp(phase.v, 0, 4, dt); }
+      }
     }
-    if (!first) { sound.chime(q + 1, 0.55); if (q === 3) setTimeout(() => sound.arpeggio(true), 250); }
+    // a soft tick as it passes each eighth of the month
+    const eighth = Math.floor(phase.theta / (TAU / 8));
+    if (eighth !== phase.eighth) {
+      if ((phase.held || tweening || Math.abs(phase.v) > 0.3) && !away) sound.chime(((eighth % 8) + 8) % 8, 0.22);
+      phase.eighth = eighth;
+    }
+    const resting = !phase.held && !tweening && Math.abs(phase.theta - homeFor(phase.theta)) < 0.01;
+    let text = phaseHint;
+    if (!resting) {
+      const pct = Math.round(litOf(phase.theta) * 100);
+      const name = phaseName(pct, !waningOf(phase.theta)).replace(/^(a|the) /, '');
+      text = `${name[0].toUpperCase()}${name.slice(1)} · ${pct}%`;
+    }
+    if (text !== shownPhase) { shownPhase = text; phaseText.textContent = text; }
   }
-  prRows.forEach((r, i) => {
-    scope.on(r, 'pointerenter', () => { prHover = i; practiceQuarter(i); });
-    scope.on(r, 'pointerleave', () => { prHover = -1; });
-  });
-  practiceQuarter(0);
 
-  // ---------- The loader's slot, for the flight to the hero ----------
+  // ---------- The work: covers drawn on the stage ----------
+  const cardEls = $$('[data-card]');
+  const media = $$('[data-card-media]');
+  if (w) {
+    w.cards.bind(media);
+    $$('[data-card-link]').forEach((a, i) => {
+      scope.on(a, 'pointerenter', () => { w.cards.hover(i, true); sound.chime(i, 0.35); });
+      scope.on(a, 'pointerleave', () => w.cards.hover(i, false));
+      scope.on(a, 'focus', () => w.cards.hover(i, true));
+      scope.on(a, 'blur', () => w.cards.hover(i, false));
+    });
+  }
+
+  // ---------- The ribbon: the moon's orbit, carried on through the page ----------
+  const driver = w ? new RibbonDriver(w, { coarse, reduced }) : null;
+  if (driver) driver.intro.v = reduced || quick ? 1 : 0;
+  const page = pageBox;
+
+  // The ribbon keeps to margins and gutters, passes over pictures rather than words, and wraps the
+  // headings instead of cutting through them. It begins orbiting the hero moon and ends orbiting the
+  // contact moon: the same gesture, at both ends of the page.
+  function route(): RibbonPoint[] {
+    const vw = innerWidth, vh = innerHeight;
+    const pts: RibbonPoint[] = [];
+    const hm = page(anchors.hero);
+    const R = hm.w / 2;
+    const mobile = mobileQ.matches;
+    const F = page(anchors.footer);
+    const FR = F.w / 2;
+    const D = textBox(duskWords);
+    // the end: down onto the contact moon from the upper left, behind it across the top, round the
+    // right, in front along the bottom, and it stops there
+    const finale = () => {
+      orbit(pts, { x: F.cx, y: F.cy }, FR * 1.62, FR * 0.4, -0.42, -0.82 * Math.PI, 0.78 * Math.PI, FR * 1.3, FR * 2.2, 0, 56);
+    };
+
+    // 1. from the right, behind the hero moon across the top, round the left, in front along the bottom, away right
+    orbit(pts, { x: hm.cx, y: hm.cy }, R * (mobile ? 1.36 : 1.55), R * 0.44, -0.42, -0.2 * Math.PI, -1.56 * Math.PI, R * 1.3, R * 2.6, R * 0.5, 48);
+    pts.push({ x: hm.cx + R * 1.75, y: hm.cy + R * 0.18, z: 30 }, { x: hm.cx + R * 2.3, y: hm.cy + R * 0.5, z: 0 }, { x: vw + 200, y: hm.cy + R * 1.4, z: 0 });
+    // the dusk: round the waxing moon under the words, the same orbit as at both ends of the page,
+    // and away down the right side
+    const M = page(anchors.dusk);
+    const mr = M.w / 2;
+    // in from the upper right, down its right side, in front along its bottom, and away to the left
+    const duskOrbit = () => orbit(pts, { x: M.cx, y: M.cy }, mr * 1.7, mr * 0.42, -0.42, -0.08 * Math.PI, 0.64 * Math.PI, mr * 1.3, 0, mr * 1.2, 44);
+    if (mobile) {
+      // phones have no margins to spare: off the right edge, back in round the dusk moon, and down to the contact moon
+      pts.push({ x: vw + 120, y: D.t - vh * 0.6, z: -60 }, { x: vw + 40, y: M.t - vh * 0.05, z: -60 });
+      duskOrbit();
+      pts.push({ x: 10, y: M.b + vh * 0.25, z: -40 });
+      finale();
+      return pts;
+    }
+    // 2. into the night of the work: back in from the right under the lede, and down the gutter
+    //    between the two columns, swaying a little but never under a cover, then out to the right
+    // the title's words may still be mid-reveal (shifted down) when this is measured: its height comes
+    // from its box, its right end from the words
+    const S = { ...pageBox($('.studio__title')), r: textBox($('.studio__title')).r };
+    const lede = page($('.work__lede'));
+    const m0 = page(cardEls[0].querySelector('.card__media')!), m1 = page(cardEls[1].querySelector('.card__media')!);
+    const gx = (m0.r + m1.l) / 2, sway = (m1.l - m0.r) * 0.16;
+    const last = page(cardEls[cardEls.length - 1].querySelector('.card__media')!);
+    pts.push({ x: vw + 160, y: lede.t - vh * 0.1, z: 0 }, { x: lede.l + lede.w * 0.55, y: lede.b + vh * 0.04, z: 20 });
+    pts.push({ x: gx, y: m0.t + m0.h * 0.1, z: 20 });
+    const runs = Math.max(2, Math.round((last.b - m0.t) / (vh * 0.45)));
+    for (let i = 1; i <= runs; i++) pts.push({ x: gx + Math.sin(i * 1.7) * sway, y: m0.t + m0.h * 0.1 + ((last.b - m0.t - m0.h * 0.1) * i) / runs, z: 20 });
+    pts.push({ x: gx, y: page(cardEls[cardEls.length - 1]).b + 30, z: 20 }, { x: vw * 0.78, y: page(cardEls[cardEls.length - 1]).b + vh * 0.12, z: 20 }, { x: vw + 120, y: S.t - vh * 0.25, z: 0 });
+    // 3. to the studio: one wide curve round the right of "One person, the whole product.", back under
+    //    it through the white between the title and the disciplines, and down between bio and list
+    const bio = page($('.studio__bio')), list = page($('.studio__list'));
+    const gap = (bio.r + list.l) / 2;
+    const room = vw - S.r, under = (S.b + list.t) / 2;
+    pts.push({ x: Math.min(vw - 60, S.r + room * 0.78), y: S.t + S.h * 0.45, z: 40 });
+    pts.push({ x: S.r + room * 0.32, y: under, z: 20 }, { x: gap + 70, y: under + 6, z: 0 });
+    // 4. down the gap between the bio and the disciplines, under the list, then the right margin
+    pts.push({ x: gap, y: list.t + 70, z: -40 }, { x: gap, y: Math.max(bio.b, list.b) - 10, z: -80 });
+    const facts = page($('.studio__facts'));
+    pts.push({ x: vw - 14, y: facts.t - 20, z: -80 }, { x: vw - 12, y: facts.b + 40, z: -80 });
+    // 5. down the right margin and round the dusk moon as it waxes
+    pts.push({ x: vw - 18, y: M.t - vh * 0.05, z: -40 });
+    duskOrbit();
+    // 6. down the left margin to the contact moon
+    const lead = page($('.contact__lead'));
+    pts.push({ x: 14, y: lead.t + 20, z: -60 });
+    finale();
+    return pts;
+  }
+
+  function buildRibbon() {
+    if (!w || !driver) return;
+    w.ribbon.setNight(0);
+    driver.build(route());
+  }
+
+  // ---------- Each frame ----------
   const loaderSlot = view.querySelector('[data-loader-slot]') as SVGCircleElement | null;
   let loaderFrozen: R | null = null;
-  const loaderRectNow = () => { const lr = loaderSlot!.getBoundingClientRect(); return around({ x: lr.left + lr.width / 2, y: lr.top + lr.height / 2 }, lr.width); };
+  const loaderRectNow = () => { const lr = loaderSlot!.getBoundingClientRect(); return around(lr.left + lr.width / 2, lr.top + lr.height / 2, lr.width / 2); };
+  let lastScene = '';
+  let lastNow = '';
 
-  // the pointer strums the line: if its path crosses a drawn segment, the line rings there
-  const prevP = { x: -1, y: -1 };
-  let pluckAt = 0;
-  function strum(wd: World, S: number, Lh: number, t: number) {
-    const p = wd.pointer;
-    const ax = prevP.x, ay = prevP.y + S, bx = p.px, by = p.py + S;
-    const moved = prevP.x >= 0 && (prevP.x !== p.px || prevP.y !== p.py);
-    prevP.x = p.px; prevP.y = p.py;
-    if (!orbit || !line || !moved || p.px < 0 || coarse || reduced || t - pluckAt < 0.07) return;
-    const b0 = Math.floor(Math.min(ay, by) / BUCKET) - 1, b1 = Math.floor(Math.max(ay, by) / BUCKET) + 1;
-    for (let b = b0; b <= b1; b++) {
-      for (const i of buckets[b] ?? []) {
-        if (i === 0 || orbit.lens[i] > Lh) continue;
-        const q = orbit.pts[i], o = orbit.pts[i - 1];
-        const d1 = (bx - ax) * (o.y - ay) - (by - ay) * (o.x - ax);
-        const d2 = (bx - ax) * (q.y - ay) - (by - ay) * (q.x - ax);
-        const d3 = (q.x - o.x) * (ay - o.y) - (q.y - o.y) * (ax - o.x);
-        const d4 = (q.x - o.x) * (by - o.y) - (q.y - o.y) * (bx - o.x);
-        if (d1 * d2 < 0 && d3 * d4 < 0) {
-          const speed = Math.hypot(bx - ax, by - ay);
-          line.pluck(orbit.lens[i], Math.min(16, 3 + speed * 0.35), d3 > 0 ? 1 : -1, t);
-          sound.pluck(Math.floor(orbit.lens[i] / 260) % 8, Math.min(1, 0.35 + speed / 60));
-          pluckAt = t;
-          return;
-        }
-      }
-    }
-  }
-  // touching the bead makes it jump and ring
-  if (w && !reduced) scope.on(window, 'pointerdown', (e) => {
-    if (!bd.seen || Math.hypot(e.clientX - bd.x, e.clientY - bd.y) > 26) return;
-    bd.vx += (Math.random() - 0.5) * 900; bd.vy -= 700;
-    pulse(true);
-    sound.bloop(0.8);
-    if (orbit && line) line.pluck(headAt(orbit, scrollY), 10, 1, w.time);
-  });
-
-  let sheenAt = new Map<Element, number>();
-  let drawn = -1;
   function frameHook(t: number, dt: number) {
     const wd = w!;
-    const vh = wd.vh;
-    const S = scrollY;
-    const es = wd.emblemState;
-    const headY = vh * HEAD;
-    // the head follows the scroll on a short spring with a top speed, so a flick of the wheel
-    // draws the line quickly but never makes it jump; a jump across the page (under the curtain) snaps
-    const want = orbit ? (reduced ? orbit.total : headAt(orbit, S)) : 0;
-    const gap = want - drawn;
-    if (!orbit || Math.abs(gap) > vh * 3 || drawn < 0) drawn = want;
-    else {
-      const step = gap * (1 - Math.exp(-16 * dt));
-      const maxStep = Math.max(2400, Math.abs(gap) * 1.5) * dt;
-      drawn += Math.max(-maxStep, Math.min(maxStep, step));
+    const vh = wd.vh, vw = wd.vw;
+    const ms = wd.moonState;
+
+    driver!.frame(t, dt);
+
+    const dkr = dusk.getBoundingClientRect();
+    const cr = contact.getBoundingClientRect();
+    const wr = work.getBoundingClientRect(), sr = studio.getBoundingClientRect();
+
+    // --- night and day as discs rising from below: the work's night, the studio's day inside it, and
+    //     the dusk's night, which keeps the screen to the end. Each follows the scroll on a spring,
+    //     quadratic, so it gathers pace and takes over. ---
+    const to = (top: number) => clamp((vh - top) / (vh * 0.65));
+    const k = reduced ? 1 : 1 - Math.exp(-9 * dt);
+    take.in += (to(wr.top) - take.in) * k;
+    take.out += (to(sr.top) - take.out) * k;
+    take.dusk += (to(dkr.top) - take.dusk) * k;
+    const cx = vw / 2, cy = vh * 1.15, R = Math.hypot(vw / 2, cy) + 40;
+    const nr = R * take.in ** 2, yr = R * take.out ** 2, kr = R * take.dusk ** 2;
+    if (wd.night.set(vw, vh, [cx, cy, nr], [cx, cy, yr], [cx, cy, kr], scrollY)) wd.invalidate();
+    wd.ribbon.setDiscs([cx, cy + scrollY, nr], [cx, cy + scrollY, yr], [cx, cy + scrollY, kr]);
+    // what a night takes, fades: the hero's words as the work's night comes, the work's as the day
+    // comes back, the studio's as the dusk comes
+    const q = (v: number) => Math.round(v * 100) / 100;
+    const ri = q(smooth(0.3, 0.75, take.in)), ro = q(smooth(0.35, 0.76, take.out)), rs = q(smooth(0.35, 0.76, take.dusk));
+    // (opacity is written on the words themselves: a custom property on a section would restyle
+    // every element inside it, each frame it changes)
+    const fade = (el: HTMLElement, v: number) => { el.style.opacity = v === 1 ? '' : String(Math.round(v * 100) / 100); };
+    if (ri !== recede.hero) { recede.hero = ri; fade(heroGrid, 1 - ri); }
+    if (ro !== recede.work) { recede.work = ro; metaEls.forEach((m) => fade(m, 1 - ro)); }
+    if (rs !== recede.studio) { recede.studio = rs; fade(studio, 1 - rs); }
+    // and what each sky brings arrives only once it is wholly inside it: light words on the night,
+    // dark words on the day, never across the edge
+    const aw = reduced ? 1 : inside(workHead, cx, cy, nr), as = reduced ? 1 : inside(studioTop, cx, cy, yr), ad = reduced ? 1 : inside(duskWords, cx, cy, kr);
+    if (aw !== arrived.work || ro !== headRecede) { arrived.work = aw; headRecede = ro; fade(workHead, (1 - ro) * aw); }
+    if (as !== arrived.studio) { arrived.studio = as; fade(studioTop, as); }
+    if (ad !== arrived.dusk) { arrived.dusk = ad; fade(duskWords, ad); }
+    if (navEl) {
+      const d = cy - 38;
+      const tone = (d < nr && d >= yr) || d < kr ? 'night' : '';
+      if ((navEl.dataset.tone ?? '') !== tone) { if (tone) navEl.dataset.tone = tone; else delete navEl.dataset.tone; }
     }
-    const Lh = drawn;
-    const mobile = mobileQ.matches;
-
-    // --- steps and dots: each dot the line passes plays a note and moves the product on ---
-    stepGroups.forEach((g, ci) => {
-      const sr = g.section.getBoundingClientRect();
-      g.near = sr.bottom > -vh && sr.top < vh * 2;
-      if (!g.near && g.current !== -1) return;
-      let active = 0;
-      const tops = g.dots.map((d) => d.getBoundingClientRect().top);
-      tops.forEach((top, i) => {
-        const passed = top + 6 < headY;
-        if (passed) active = i;
-        const li = g.items[i];
-        if (li.dataset.passed !== String(passed)) li.dataset.passed = String(passed);
-      });
-      if (active !== g.current) {
-        const firstTime = g.current === -1;
-        g.current = active;
-        g.items.forEach((li, i) => (li.dataset.active = String(i === active)));
-        g.ticks.forEach((tk, i) => (tk.dataset.on = String(i <= active)));
-        g.section.dataset.step = String(active);
-        wd.chapters[ci]?.setStep(active);
-        g.caption.textContent = g.items[active].querySelector('.chapter__step-title')!.textContent;
-        g.discShadow.setAttribute('cx', (-2 * 48 * g.lits[active]).toFixed(2));
-        if (!firstTime && t - lastStepSound > 0.15) {
-          sound.chime(active, 0.7);
-          lastStepSound = t;
-          const s = orbit?.steps.find((x) => x.el === g.dots[active]);
-          if (s) line?.pluck(s.len, 5, 1, t);
-          pulse();
-        }
-      }
-      // on phones the steps scroll up beneath a pinned stage: hide what is behind it
-      if (mobile) {
-        const pr = g.panel.getBoundingClientRect(), str = g.steps.getBoundingClientRect();
-        const cut = Math.max(0, pr.bottom + 10 - str.top);
-        g.steps.style.clipPath = cut > 0 ? `inset(${cut}px 0 0 0)` : '';
-      } else if (g.steps.style.clipPath) g.steps.style.clipPath = '';
-    });
-    // practice: the quarter follows the line, unless you are pointing at one
-    let passedQ = -1;
-    prRows.forEach((row, i) => {
-      const dot = row.querySelector('[data-line-step]')!;
-      const passed = dot.getBoundingClientRect().top + 6 < headY;
-      if (passed) passedQ = i;
-      const v = String(passed);
-      if (row.dataset.passed !== v) row.dataset.passed = v;
-    });
-    if (passedQ !== prPassed) { prPassed = passedQ; if (passedQ >= 0) pulse(); }
-    if (prHover < 0) practiceQuarter(Math.max(0, passedQ));
-
-    // --- night falls over the last stretch ---
-    const dr = dusk.getBoundingClientRect();
-    const n = smooth(0.12, 0.62, (vh * 0.5 - dr.top) / dr.height);
-    if (Math.abs(n - night) > 0.001 || (n === 0) !== (night === 0)) { sky.style.opacity = n.toFixed(3); }
-    night = n;
-    const isNight = night > 0.5;
+    // the rest of the page (the letter, the sound, the moon's glow) follows the dusk's night
+    night = take.dusk;
+    const isNight = night > 0.98;
     if ((document.documentElement.dataset.night === 'true') !== isNight) document.documentElement.dataset.night = String(isNight);
-    wd.stars.material.uniforms.uAlpha.value = night;
-    wd.stars.material.uniforms.uDrift.value = (S / vh) * 0.02;
     sound.night(night);
 
-    // --- where the moon is ---
-    const ir = indexSection.getBoundingClientRect();
-    const a = clamp(1 - ir.top / vh);                                   // hero → index
-    const q = clamp(-ir.top / Math.max(1, ir.height - vh));             // through the index
-    const pinEnd = ir.bottom + S - vh;
-    const m1 = orbit ? smooth(pinEnd, pinEnd + vh * 0.55, S) : 0;       // index → the line
-    const m2 = orbit ? smooth(orbit.finale.len - vh * 0.5, orbit.finale.len, Lh) : 0; // line → footer
-    const beadR = mobile ? 6 : 8.5;
+    // --- the project nearest the middle of the screen (the island names it) ---
+    let best = 0, bd = 1e9;
+    cardEls.forEach((c, i) => { const r = c.getBoundingClientRect(); const d = Math.abs(r.top + r.height / 2 - vh * 0.5); if (d < bd) { bd = d; best = i; } });
 
-    // --- the line, and the bead at its head ---
-    let head = { x: -100, y: -100 };
-    if (orbit && line && bead) {
-      const hp = pointAt(orbit, Lh);
-      head = { x: hp.x, y: hp.y - S };
-      const p = wd.pointer;
-      // drawn toward the pointer when it comes close, and let go with a pluck
-      let tx = head.x, ty = head.y;
-      const near = !coarse && !reduced && p.px >= 0 ? Math.hypot(p.px - head.x, p.py - head.y) : 1e9;
-      const reachR = 120;
-      const held = near < reachR && m1 > 0.9 && m2 < 0.2;
-      if (held) {
-        const k = Math.pow(1 - near / reachR, 0.6) * 0.62;
-        tx = lerp(head.x, p.px, k); ty = lerp(head.y, p.py, k);
-      }
-      if (held !== bd.held) {
-        bd.held = held;
-        if (held) sound.bloop(0.4);
-        else { sound.pluck(3, 0.6); line.pluck(Lh, 9, 1, t); }
-      }
-      if (!bd.seen || reduced) { bd.x = tx; bd.y = ty; bd.vx = bd.vy = 0; bd.seen = true; }
-      // a slightly underdamped spring: it lags on sharp turns and settles with a wobble
-      const k = held ? 90 : 170, c = held ? 12 : 15;
-      const sub = Math.min(4, Math.ceil(dt / 0.008));
-      for (let i = 0; i < sub; i++) {
-        const h = dt / sub;
-        bd.vx += (-k * (bd.x - tx) - c * bd.vx) * h; bd.x += bd.vx * h;
-        bd.vy += (-k * (bd.y - ty) - c * bd.vy) * h; bd.y += bd.vy * h;
-      }
-      // never too far from the line it belongs to
-      let ox = bd.x - head.x, oy = bd.y - head.y;
-      const ol = Math.hypot(ox, oy), maxL = held ? 140 : 90;
-      if (ol > maxL) { ox *= maxL / ol; oy *= maxL / ol; bd.x = head.x + ox; bd.y = head.y + oy; }
-
-      line.frame(wd.vw, vh, wd.dpr, S, t);
-      const lu = line.material.uniforms;
-      lu.uHead.value = Lh;
-      lu.uHeadLen.value = Lh;
-      (lu.uPull.value as { set(x: number, y: number): void }).set(ox, oy);
-      const ink = lerp(0.078, 0.925, night);
-      lu.uColorA.value.setRGB(ink, ink, lerp(0.086, 0.913, night));
-      lu.uAlpha.value = lerp(0.9, 0.74, night);
-      const clip = lu.uClip.value;
-      clip.set(0, 0, 0, 0);
-      if (mobile) {
-        for (const g of stepGroups) {
-          if (!g.near) continue;
-          const r = g.panel.getBoundingClientRect();
-          if (r.bottom > 0 && r.top < vh) { clip.set(0, r.top, wd.vw, r.height); break; }
-        }
-      }
-      strum(wd, S, Lh, t);
-
-      const bu = bead.material.uniforms;
-      const show = smooth(0.62, 1, m1) * (1 - smooth(0.25, 0.85, m2));
-      const speed = Math.hypot(bd.vx, bd.vy);
-      bu.uViewport.value.set(wd.vw, vh);
-      bu.uCenter.value.set(bd.x, bd.y);
-      bu.uDpr.value = wd.dpr;
-      bu.uRadius.value = beadR * (held ? 1.4 : 1) * lerp(0.3, 1, show);
-      if (speed > 1) bu.uDir.value.set(bd.vx / speed, bd.vy / speed);
-      bu.uStretch.value = 1 + Math.min(0.75, speed / 1300);
-      bu.uColor.value.setRGB(ink, ink, lerp(0.086, 0.913, night));
-      bu.uAlpha.value = show;
-      // a faint halo breathes around it; steps and touches send a ring out from it
-      const breath = beadR * 1.9 + Math.sin(t * 2.2) * 1.4;
-      const ringR = held ? beadR * 2.6 : bd.ringA > 0.12 ? bd.ring : breath;
-      const ringA = held ? 0.45 : Math.max(bd.ringA, 0.16 * show);
-      bu.uRing.value.set(Math.max(ringR, beadR + 3), ringA, 1.2);
-      bead.mesh.visible = show > 0.004;
-    }
-
-    let rect: R, lit: number, shadow = 1, alphaMul = 1;
+    // --- where the moon is: the hero, the dusk, and the letter ---
+    const hero = rectOf(anchors.hero), ft = rectOf(anchors.footer), dk = rectOf(anchors.dusk);
+    const heroUp = !!hero && hero.y + hero.w > -10;
+    phaseFrame(dt, !heroUp || scrollY > vh * 0.4);
+    const heroLit = litOf(phase.theta), heroWane = waningOf(phase.theta);
+    let rect: R = { x: -9999, y: -9999, w: 10 }, lit = 0.75, wane = false, alpha = 1, shadow = 1, scale = 1;
     if (moon.load < 1) {
-      rect = mix(loaderFrozen ?? loaderRectNow(), rectOf(anchors.hero), ease(moon.load));
-      lit = 0.75;
+      rect = mix(loaderFrozen ?? loaderRectNow(), hero ?? loaderRectNow(), ease(moon.load));
       shadow = moon.load;
-    } else if (a < 1) {
-      rect = mix(rectOf(anchors.hero), rectOf(anchors.index), ease(a));
-      lit = lerp(0.75, moon.indexLit, ease(a));
-    } else if (m1 <= 0 || !orbit) {
-      rect = rectOf(anchors.index);
-      lit = moon.indexLit;
-    } else if (m2 <= 0) {
-      // the moon shrinks into a drop of ink, and the drop is the bead
-      rect = mix(rectOf(anchors.index), around(head, beadR * 3), ease(m1));
-      lit = lerp(moon.indexLit, 1, m1);
-      shadow = lerp(1, 0.4, m1);
-      alphaMul = 1 - smooth(0.55, 0.92, m1);
-    } else {
-      // and at the end, the bead swells back into the full moon
-      rect = mix(around({ x: bd.x, y: bd.y }, beadR * 3), rectOf(anchors.footer), ease(m2));
-      lit = 1;
-      shadow = lerp(0.4, 1, m2);
-      alphaMul = smooth(0.05, 0.4, m2);
-    }
+    } else if (heroUp) {
+      rect = hero!; lit = heroLit; wane = heroWane;
+    } else if (dk && dk.y < vh && dk.y + dk.w > 0) {
+      // the dusk moon waxes from a sliver to full as it rises up the screen
+      rect = dk;
+      const p = smooth(vh * 0.95, vh * 0.4, dk.y + dk.w / 2);
+      lit = lerp(0.04, 1, p);
+      const pct = Math.round(lit * 100);
+      if (pct !== duskShown) { duskShown = pct; duskPctEl.textContent = String(pct); }
+    } else if (ft && ft.y < vh && ft.y + ft.w > 0) {
+      // the contact moon: it waxes as the letter is written
+      rect = ft; lit = briefLit.v;
+      alpha = smooth(0.1, 0.5, (vh - cr.top) / vh);
+    } else alpha = 0;
 
-    // index: the scroll walks the rows, a hovered row takes over
-    if (a >= 1 && q < 1) {
-      const row = Math.min(indexRows.length - 1, Math.floor(q * indexRows.length * 1.08));
-      if (moon.hoverLit < 0) activeRow(row);
-    }
-    const wantLit = moon.hoverLit >= 0 ? moon.hoverLit : Number(indexRows[rowNow]?.dataset.lit ?? 0.3);
-    moon.indexLit = damp(moon.indexLit, wantLit, 5, dt);
-    const pct = String(Math.round(moon.indexLit * 100));
-    if (readout.textContent !== pct) readout.textContent = pct;
-
-    // the island says where you are, and offers the way into each chapter's case study
-    const cr = contact.getBoundingClientRect(), prr = practice.getBoundingClientRect();
-    let scene = 'hero';
-    if (cr.top < vh * 0.5) { chrome.setNow('Work with me', 1); scene = 'night'; }
-    else if (prr.top < vh * 0.5) { chrome.setNow('Practice', (Math.max(0, prNow) + 1) / 4); scene = 'practice'; }
-    else {
-      let hit: HTMLElement | null = null;
-      for (const s of storySections) { if (s.getBoundingClientRect().top < vh * 0.5) hit = s; else break; }
-      if (hit?.dataset.chapter) {
-        const i = chapters.indexOf(hit);
-        const g = stepGroups[i];
-        chrome.setNow(g.name, LITS[i], { href: g.caseHref, label: 'Case study' });
-        scene = g.slug;
-      } else if (hit?.dataset.band) {
-        chrome.setNow(hit.querySelector('[data-band-word]')!.textContent!, 0.75);
-        scene = 'index';
-      } else if (ir.top < vh * 0.5) { chrome.setNow('The work', moon.indexLit); scene = 'index'; }
-      else chrome.setNow('Oblune Studio', 0.75);
-    }
-    sound.scene(scene);
-
-    // category words: the highlight in the metal travels as they cross the screen (only when it moves)
-    for (const b of bandWords) {
-      const r = b.getBoundingClientRect();
-      if (r.bottom < 0 || r.top > vh) continue;
-      const v = Math.round((clamp(1 - (r.top + r.height / 2) / vh) * 130 - 15) * 2) / 2;
-      if (sheenAt.get(b) === v) continue;
-      sheenAt.set(b, v);
-      b.style.setProperty('--sheen', `${v}%`);
-    }
-
-    // a full cycle on click: to new, to full, back
-    let phaseLit = lit;
     if (moon.cycle > 0 && moon.cycle < 1) {
       const c = moon.cycle;
-      phaseLit = c < 0.3 ? lerp(lit, 0, ease(c / 0.3)) : c < 0.8 ? lerp(0, 1, ease((c - 0.3) / 0.5)) : lerp(1, lit, ease((c - 0.8) / 0.2));
+      lit = c < 0.3 ? lerp(lit, 0, ease(c / 0.3)) : c < 0.8 ? lerp(0, 1, ease((c - 0.3) / 0.5)) : lerp(1, lit, ease((c - 0.8) / 0.2));
     }
-    const phase = litToShader(phaseLit) + smooth(0.97, 1, phaseLit) * 0.08;
 
-    if (dial && dialNeedle && dialSpin && a < 0.4) {
-      const cyc = moon.cycle > 0 && moon.cycle < 1 ? moon.cycle * 360 : 0;
-      const needle = (Math.acos(1 - 2 * clamp(phaseLit)) / Math.PI) * 180 + cyc;
-      dialNeedle.setAttribute('transform', `rotate(${needle.toFixed(2)})`);
-      dialSpin.setAttribute('transform', `rotate(${(moon.tilt.x * 18 + t * 1.5).toFixed(2)})`);
-      dial.style.opacity = String((1 - smooth(0, 0.3, a)) * dialIn.v);
-    } else if (dial && dial.style.opacity !== '0') dial.style.opacity = '0';
-
-    // pointer: tilt toward it, the light follows, the surface ripples, and near the rim it pulls a droplet out
+    // a spin it is given (the contact moon, a sent letter) keeps going, slows, and settles face on
+    moon.spinV *= Math.exp(-1.9 * dt);
+    moon.turn += moon.spinV * dt;
+    if (Math.abs(moon.spinV) < 2.2 && !gsap.isTweening(moon)) {
+      const home = Math.round(moon.turn / TAU) * TAU;
+      moon.turn = damp(moon.turn, home, 3.4, dt);
+      moon.spinV = damp(moon.spinV, 0, 3.4, dt);
+    }
     const p = wd.pointer;
-    const drift = 1 - smooth(4, 7, t);
-    moon.tilt.x = damp(moon.tilt.x, p.x * 0.42 + Math.sin(t * 0.35) * 0.08 * drift, 3.2, dt);
-    moon.tilt.y = damp(moon.tilt.y, p.y * 0.3 + Math.cos(t * 0.27) * 0.05 * drift, 3.2, dt);
-    moon.light.x = damp(moon.light.x, p.x * 0.5, 2, dt);
-    moon.light.y = damp(moon.light.y, -p.y * 0.3, 2, dt);
-    const spin = a > 0 && a < 1 ? Math.sin(a * Math.PI) * 1.1 : 0;
-    for (const el of hovering) {
-      const r = rectOf(el);
-      const lx = (p.px - (r.x + r.w / 2)) / (r.w / 2), ly = -(p.py - (r.y + r.w / 2)) / (r.w / 2);
-      if (Math.hypot(lx - lastRipple.x, ly - lastRipple.y) > 0.09 && t - lastRipple.t > 0.05) {
-        wd.emblem.ripple(lx, ly, 0.55, t);
-        lastRipple = { x: lx, y: ly, t };
-      }
-    }
-    const big = ((a < 0.02 && moon.load >= 1) || m2 > 0.98) && !coarse && !reduced;
-    const c0 = centre(rect);
-    const QUAD = 0.37 * 4.2;
-    const wx = ((p.px - c0.x) / (rect.w / 2)) * QUAD, wy = (-(p.py - c0.y) / (rect.w / 2)) * QUAD;
-    const dist = Math.hypot(wx, wy);
-    const nearRim = big && p.px >= 0 && dist > 0.9 && dist < 1.75;
-    const reachD = Math.min(dist, 1.3);
-    const d = moon.drop;
-    const tx = nearRim ? (wx / dist) * reachD : d.x * 0.9;
-    const ty = nearRim ? (wy / dist) * reachD : d.y * 0.9;
-    const tr = nearRim ? 0.2 * smooth(1.75, 1.12, dist) : 0;
-    const K = 90, C = 11;
-    d.vx += (-K * (d.x - tx) - C * d.vx) * dt; d.x += d.vx * dt;
-    d.vy += (-K * (d.y - ty) - C * d.vy) * dt; d.y += d.vy * dt;
-    d.vr += (-K * (d.r - tr) - C * d.vr) * dt; d.r = Math.max(0, d.r + d.vr * dt);
-    if (d.r > 0.08 && !moon.grabbed) { moon.grabbed = true; sound.bloop(0.5); }
-    if (d.r < 0.03 && moon.grabbed) { moon.grabbed = false; sound.bloop(0.3); }
+    const still = coarse || reduced;
+    const lean = Math.max(-0.5, Math.min(0.5, phase.v * 0.05));
+    moon.tilt.x = damp(moon.tilt.x, (still ? 0 : p.x * 0.36) + lean, 3.2, dt);
+    moon.tilt.y = damp(moon.tilt.y, still ? 0 : p.y * 0.24, 3.2, dt);
+    moon.light.x = damp(moon.light.x, coarse || reduced ? Math.sin(t * 0.25) * 0.4 : p.x * 0.6, 2, dt);
+    moon.light.y = damp(moon.light.y, coarse || reduced ? 0 : -p.y * 0.4, 2, dt);
+    wd.cards.pointer(p.x, p.y);
 
-    const drops = [{ x: d.x, y: d.y, z: 0, r: d.r > 0.012 ? d.r : 0 }];
-    if (moon.merged < 1) {
-      const f = moon.form;
-      for (let i = 0; i < 5; i++) {
-        const th = t * (0.9 + i * 0.08) + (i * Math.PI * 2) / 5;
-        const rad = lerp(1.3, 0.25, ease(f)) * (1 + Math.sin(t * 2 + i) * 0.05);
-        const r = lerp(0.19, 0.1, f) * (1 - moon.merged);
-        drops.push({ x: Math.cos(th) * rad, y: Math.sin(th) * rad * 0.9, z: Math.sin(th * 1.3) * 0.15, r });
-      }
-    }
+    ms.rect = rect;
+    ms.lit = lit;
+    ms.wane = wane;
+    ms.tilt = { x: moon.tilt.x + moon.turn, y: moon.tilt.y };
+    ms.light = moon.light;
+    ms.alpha = moonAlpha.v * alpha;
+    ms.scale = scale;
+    ms.shadow = shadow;
+    ms.night = Math.max(night, take.in * (1 - take.out));
 
-    es.rect = rect;
-    es.phase = phase;
-    es.tilt = { x: moon.tilt.x + moon.turn + spin, y: moon.tilt.y };
-    es.light = moon.light;
-    es.alpha = moonAlpha.v * alphaMul;
-    es.shadow = shadow;
-    es.night = night;
-    es.drops = drops;
-    es.body = reduced ? 1 : smooth(0.2, 1, moon.form);
+    // --- where you are: the island says it, and offers the way into the case study in view ---
+    let scene = 'hero', now = 'Oblune Studio', go: { href: string; label: string } | null = null, nowLit = 0.75;
+    if (dkr.top < vh * 0.3 || cr.top < vh * 0.5) { scene = 'night'; now = 'Work with me'; nowLit = 1; }
+    else if (sr.top < vh * 0.5) { scene = 'practice'; now = 'Studio'; nowLit = 1; }
+    else if (wr.top < vh * 0.5) {
+      const c = cardEls[best];
+      scene = c.id; now = c.querySelector('.card__name')!.textContent!.trim();
+      go = { href: `/work/${c.id}`, label: 'Case study' };
+    }
+    if (now !== lastNow) { lastNow = now; chrome.setNow(now, nowLit, go); }
+    if (scene !== lastScene) { lastScene = scene; sound.scene(scene); }
   }
 
   if (w) {
     w.hooks.length = 0;
     w.hooks.push(frameHook);
-    // the world rests while a window covers it
     scope.tick((_, delta) => { if (!app.paused) w.frame(Math.min(delta / 1000, 1 / 20)); });
   }
 
-  // ---------- Loader: mercury gathers into the moon, the letters arrive, then the logo splits ----------
+  // ---------- Loader ----------
   const loader = view.querySelector<HTMLElement>('[data-loader]');
   const navBrand = document.querySelector<HTMLElement>('[data-nav-brand]')!;
   const island = chrome.island;
@@ -594,18 +441,18 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
     try { sessionStorage.setItem('oblune:seen', '1'); } catch { /* private mode */ }
     const h = decodeURIComponent(location.hash);
     if (first && h.startsWith('#code/')) app.repos.fromHash();
-    else if (first && h.length > 1) requestAnimationFrame(() => { ScrollTrigger.refresh(); buildLine(); const y = targetY(h); if (y) lenis?.scrollTo(y, { immediate: true, force: true }); });
+    else if (first && h.length > 1) requestAnimationFrame(() => { ScrollTrigger.refresh(); const y = targetY(h); if (y) lenis?.scrollTo(y, { immediate: true, force: true }); });
   }
 
+  const words = $$('[data-words]');
   function intro() {
     document.documentElement.classList.add('is-ready');
-    buildLine();
     chrome.sizeIsland();
-    if (reduced) { gsap.set(navBrand, { opacity: 1 }); return; }
+    if (reduced) { gsap.set(navBrand, { opacity: 1 }); if (driver) driver.intro.v = 1; return; }
     scope.gsap(() => {
-      gsap.fromTo(moon, { turn: -1.2 }, { turn: 0, duration: 2.2, ease: 'expo.out' });
-      gsap.to(dialIn, { v: 1, duration: 1.6, ease: 'power2.out', delay: 0.5 });
-      gsap.fromTo('[data-dial-spin] line', { opacity: 0 }, { opacity: 1, duration: 0.02, stagger: { each: 0.012, from: 'start' }, delay: 0.5 });
+      gsap.fromTo(moon, { turn: -TAU * 0.5 }, { turn: 0, duration: 2.4, ease: 'expo.out' });
+      // the ribbon draws itself round the moon as the page arrives
+      if (driver) gsap.fromTo(driver.intro, { v: 0 }, { v: 1, duration: 2.8, ease: 'power2.inOut', delay: 0.15 });
       const title = $('[data-hero-title]');
       title.setAttribute('aria-label', title.textContent!.replace(/\s+/g, ' ').trim());
       const lines = $$('.hero__line', title);
@@ -630,16 +477,14 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
   };
 
   if (quick || reduced || !loader) {
-    // straight in: no loader, the moon already at the hero
     loader?.remove();
     canvas.classList.remove('world--top');
     view.querySelector('main')?.removeAttribute('aria-busy');
     if (reduced) moonAlpha.v = 1;
     if (w) w.warm().then(readyMoon); else readyMoon();
-    if (!first) { gsap.set(navBrand, { opacity: 1 }); }
-    // arriving from another page, the intro plays as the curtain lifts
+    if (!first) gsap.set(navBrand, { opacity: 1 });
     if (first) { intro(); arrive(); }
-    else { document.documentElement.classList.add('is-ready'); buildLine(); }
+    else { document.documentElement.classList.add('is-ready'); if (driver) driver.intro.v = 1; }
   } else {
     const logo = $('[data-loader-logo]');
     const ringEl = $<SVGCircleElement>('[data-loader-ring]');
@@ -652,26 +497,19 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
     gsap.set(navBrand, { opacity: 0 });
     gsap.set(island, { opacity: 0, y: -16 });
     const tasks: Promise<unknown>[] = [document.fonts.ready.then(() => (target += 0.25))];
-    if (w) {
-      tasks.push(w.warm().then(() => {
-        target += 0.35;
-        moonAlpha.v = 1;
-        gsap.to(loaderMoon, { opacity: 0, duration: 0.5, ease: 'power2.out' });
-      }));
-      const firstStage = w.chapters[0];
-      tasks.push(Promise.allSettled((firstStage?.urls.slice(0, 2) ?? []).map((u) => fetch(u).then((r) => r.blob()))).then(() => (target += 0.4)));
-    } else target += 0.75;
+    if (w) tasks.push(w.warm().then(() => { target += 0.35; })); else target += 0.35;
+    const firstCover = media[0]?.querySelector('img');
+    tasks.push((firstCover?.decode?.() ?? Promise.resolve()).catch(() => {}).then(() => (target += 0.4)));
     const tickLoader = () => {
       shown.v += (Math.min(target, 1) - shown.v) * 0.06;
       const v = shown.v;
-      moon.form = v;
       ringEl.style.strokeDashoffset = String(-v * 0.25);
       loaderMoon.setAttribute('d', emblemPath(v * 0.75));
       count.textContent = String(Math.round(v * 100)).padStart(3, '0');
     };
     gsap.ticker.add(tickLoader);
     scope.add(() => gsap.ticker.remove(tickLoader));
-    const minTime = new Promise((r) => setTimeout(r, 1800));
+    const minTime = new Promise((r) => setTimeout(r, 1600));
     const maxTime = new Promise((r) => setTimeout(r, 8000));
     lenis?.stop();
     Promise.race([Promise.all([...tasks, minTime]), maxTime]).then(() => {
@@ -682,14 +520,12 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
     function ready() {
       gsap.ticker.remove(tickLoader);
       count.textContent = '100';
-      moon.form = 1;
       loaderMoon.setAttribute('d', emblemPath(0.75));
-      gsap.to(moon, { merged: 1, duration: 0.8, ease: 'power2.in' });
+      if (w) { moonAlpha.v = 1; gsap.to(loaderMoon, { opacity: 0, duration: 0.5, ease: 'power2.out' }); }
       gsap.timeline()
         .to(logo, { translate: '0% 0', duration: 1, ease: 'expo.inOut' }, 0.2)
         .to(clipRect, { attr: { width: 270 }, duration: 1, ease: 'expo.inOut' }, 0.25)
         .to('.loader__count', { opacity: 0, duration: 0.4 }, 0.6)
-        // the logo is whole: the way in, if the browser wants a press before it lets sound play
         .add(() => { enter('loader').then(() => gsap.delayedCall(0.15, go)); }, 1.35);
     }
     function go() {
@@ -700,7 +536,6 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
       document.querySelector('[data-loader-status]')!.textContent = 'Loaded';
       gsap.to([ringEl, '.loader__note'], { opacity: 0, duration: 0.35 });
       loaderFrozen = loaderRectNow();
-      // FLIP the whole logo so its letters land exactly on the nav's letters
       const D = logo.getBoundingClientRect();
       const F = letters.getBoundingClientRect();
       const T = document.querySelector('[data-nav-letters]')!.getBoundingClientRect();
@@ -722,26 +557,55 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
     }
   }
 
-  // ---------- The brief: a sentence you fill in ----------
+  // ---------- The brief: a letter you fill in; the moon waxes as you write it ----------
   const brief = view.querySelector<HTMLFormElement>('[data-brief]');
   if (brief) {
     const errors = brief.querySelector<HTMLElement>('[data-brief-errors]')!;
     const status = brief.querySelector<HTMLElement>('[data-brief-status]')!;
+    const countEl = view.querySelector<HTMLElement>('[data-brief-count]')!;
+    const pctEl = view.querySelector<HTMLElement>('[data-brief-pct]')!;
+    const capEl = view.querySelector<HTMLElement>('[data-brief-cap]')!;
     const field = (nm: string) => brief.elements.namedItem(nm) as HTMLInputElement;
+    const picked = (nm: string) => brief.querySelector<HTMLInputElement>(`input[name="${nm}"]:checked`);
+    const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+    const CAPS = [
+      'A crescent. Start with your name.',
+      'Waxing. What are you building?',
+      'Nearly half. Tell me the idea in a line.',
+      'More than half. When would you like to start?',
+      'Nearly full. Where can I reply?',
+      'A full moon. Send it whenever you are ready.',
+    ];
+    const pctShown = { v: 0 };
+    let doneBefore = -1;
+    const progress = () => {
+      const done = [field('name').value.trim(), picked('kind'), field('idea').value.trim(), picked('when'), emailOk(field('email').value)].filter(Boolean).length;
+      if (done === doneBefore) return;
+      const up = done > doneBefore && doneBefore >= 0;
+      doneBefore = done;
+      countEl.textContent = String(done);
+      capEl.textContent = CAPS[done];
+      const to = done / 5;
+      gsap.to(briefLit, { v: 0.3 + to * 0.7, duration: 1.1, ease: 'power3.inOut', overwrite: true });
+      gsap.to(pctShown, { v: to * 100, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: () => { pctEl.textContent = String(Math.round(pctShown.v)); } });
+      if (up) { sound.chime(done, 0.5); if (done === 5) setTimeout(() => sound.arpeggio(true), 200); }
+    };
     const check = () => {
       const out: { el: HTMLElement; msg: string }[] = [];
       const name = field('name'), idea = field('idea'), email = field('email');
-      const kind = brief.querySelector<HTMLInputElement>('input[name="kind"]:checked');
       if (!name.value.trim()) out.push({ el: name, msg: 'Add your name.' });
-      if (!kind) out.push({ el: brief.querySelector<HTMLInputElement>('input[name="kind"]')!, msg: 'Pick what you are building.' });
+      if (!picked('kind')) out.push({ el: brief.querySelector<HTMLInputElement>('input[name="kind"]')!, msg: 'Pick what you are building.' });
       if (!idea.value.trim()) out.push({ el: idea, msg: 'Describe it in a line.' });
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) out.push({ el: email, msg: 'Add an email address I can reply to.' });
+      if (!picked('when')) out.push({ el: brief.querySelector<HTMLInputElement>('input[name="when"]')!, msg: 'Pick when you would like to start.' });
+      if (!emailOk(email.value)) out.push({ el: email, msg: 'Add an email address I can reply to.' });
       [name, idea, email].forEach((i) => i.removeAttribute('aria-invalid'));
       out.forEach((o) => o.el.setAttribute('aria-invalid', 'true'));
       errors.innerHTML = out.map((o) => `<li>${o.msg}</li>`).join('');
       return out;
     };
-    scope.on(brief, 'input', () => { if (errors.childElementCount) check(); });
+    scope.on(brief, 'input', () => { progress(); if (errors.childElementCount) check(); });
+    scope.on(brief, 'change', progress);
+    progress();
     scope.on(brief, 'submit', async (e) => {
       e.preventDefault();
       const problems = check();
@@ -749,17 +613,19 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
       if (field('company').value) return; // a bot filled the hidden field
       const data = {
         name: field('name').value.trim(),
-        kind: brief.querySelector<HTMLInputElement>('input[name="kind"]:checked')!.value,
+        kind: picked('kind')!.value,
         idea: field('idea').value.trim(),
+        when: picked('when')!.value,
         email: field('email').value.trim(),
       };
-      const body = `Hi Bharat, I'm ${data.name} and I'm building ${data.kind}. In a line, it's ${data.idea}. You can reach me at ${data.email}.`;
+      const body = `Hi Bharat, I'm ${data.name}, and I'm building ${data.kind}. In a line, it's ${data.idea}. I'd like to start ${data.when}. You can reach me at ${data.email}.`;
       const endpoint = brief.dataset.endpoint;
       const done = (msg: string) => {
         brief.dataset.sent = 'true';
         status.textContent = msg;
+        capEl.textContent = 'Sent. The moon is yours.';
         sound.arpeggio(true);
-        if (w && !reduced) gsap.fromTo(moon, { cycle: 0 }, { cycle: 1, duration: 2.4, ease: 'none' });
+        if (w && !reduced) { gsap.fromTo(moon, { cycle: 0 }, { cycle: 1, duration: 2.4, ease: 'none' }); moon.spinV += 10; }
       };
       if (endpoint) {
         status.textContent = 'Sending…';
@@ -776,75 +642,28 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
         }
       } else {
         location.href = `mailto:${brief.dataset.to}?subject=${encodeURIComponent(`A project for Oblune: ${data.kind}`)}&body=${encodeURIComponent(body)}`;
-        done(`Your mail app should open with this written out. If it didn’t, write to ${brief.dataset.to}.`);
+        done(`Your mail app should open with the letter written out. If it didn’t, write to ${brief.dataset.to}.`);
       }
     });
   }
 
-  // ---------- Scroll storytelling in the DOM ----------
-  if (!reduced) scope.gsap(() => {
-    const statement = view.querySelector<HTMLElement>('[data-brighten]');
-    if (statement) {
-      SplitText.create(statement, {
-        type: 'words',
-        autoSplit: true,
-        onSplit: (self) =>
-          gsap.fromTo(self.words, { opacity: 0.16 }, {
-            opacity: 1, ease: 'none', stagger: 0.1,
-            scrollTrigger: { trigger: indexSection, start: 'top 75%', end: () => `top+=${innerHeight * 0.2} top`, scrub: true },
-          }),
-      });
-    }
-    gsap.from('.index__title', { yPercent: 60, opacity: 0, duration: 1.2, ease: EASE, scrollTrigger: { trigger: indexSection, start: 'top 60%' } });
-    gsap.from(indexRows, { opacity: 0, y: 18, duration: 1, ease: EASE, stagger: 0.05, scrollTrigger: { trigger: indexSection, start: 'top 30%' } });
-    gsap.from($$('.index__rule'), { scaleX: 0, duration: 1.4, ease: 'expo.inOut', stagger: 0.06, scrollTrigger: { trigger: indexSection, start: 'top 30%' } });
-
-    $$('[data-band]').forEach((band) => {
-      const word = band.querySelector<HTMLElement>('[data-band-word]')!;
-      gsap.fromTo(word, { clipPath: 'inset(0% 0% 100% 0%)', yPercent: 38 }, {
-        clipPath: 'inset(0% 0% -10% 0%)', yPercent: 0, ease: 'expo.out', duration: 1.7,
-        scrollTrigger: { trigger: band, start: 'top 72%', once: true },
-      });
-      gsap.from($$('[data-band-reveal], .band__count', band), { opacity: 0, y: 24, duration: 1.2, ease: EASE, stagger: 0.08, scrollTrigger: { trigger: band, start: 'top 70%' } });
+  // ---------- Words and reveals ----------
+  // all below the first screen: split and armed in a task of their own, after the page is up
+  const later = (fn: () => void) => { const id = window.setTimeout(() => { if (!scope.dead) fn(); }, 0); scope.add(() => clearTimeout(id)); };
+  if (!reduced) later(() => scope.gsap(() => {
+    words.forEach((el) => riseWords(el));
+    cardEls.forEach((c) => {
+      gsap.from(c.querySelectorAll('.card__meta > *'), { opacity: 0, y: 18, duration: 1.1, ease: EASE, stagger: 0.06, scrollTrigger: { trigger: c.querySelector('.card__meta'), start: 'top 94%', once: true } });
     });
-
-    chapters.forEach((sec) => {
-      const name = sec.querySelector<HTMLElement>('[data-chapter-name]')!;
-      const split = SplitText.create(name, { type: 'chars', mask: 'chars' });
-      gsap.from(split.chars, {
-        yPercent: 108, ease: 'expo.out', duration: 1.5, stagger: 0.045,
-        scrollTrigger: { trigger: name, start: 'top 88%', once: true },
-        onComplete: () => split.revert(),
-      });
-      gsap.from(sec.querySelectorAll('.chapter__meta > *'), { opacity: 0, duration: 1.2, ease: 'power2.out', stagger: 0.07, scrollTrigger: { trigger: sec, start: 'top 72%' } });
-      gsap.from(sec.querySelectorAll('.chapter__line, .chapter__about'), { opacity: 0, y: 22, duration: 1.2, ease: EASE, stagger: 0.07, scrollTrigger: { trigger: sec, start: 'top 72%' } });
-      const disc = sec.querySelector('[data-disc]');
-      gsap.fromTo(disc, { scale: 0.72, rotate: -40, opacity: 0 }, {
-        scale: 1, rotate: 0, opacity: 1, ease: 'none',
-        scrollTrigger: { trigger: sec.querySelector('.chapter__body'), start: 'top bottom', end: 'top 30%', scrub: true },
-      });
-    });
-
-    $$('#practice, #contact').forEach((section) => {
-      const els = $$('[data-reveal]', section);
-      gsap.from(els, {
-        opacity: 0, y: (i: number) => (els[i].querySelector('[data-line-step]') ? 0 : 28), duration: 1.2, ease: EASE, stagger: 0.08,
-        scrollTrigger: { trigger: section.id === 'contact' ? section.querySelector('.contact__night') : section, start: 'top 75%' },
-      });
-    });
-    gsap.from('.practice__moon', {
-      scale: 0.8, rotate: -30, opacity: 0, ease: 'none',
-      scrollTrigger: { trigger: '.practice__body', start: 'top bottom', end: 'top 35%', scrub: true },
-    });
-    const whisper = $('[data-whisper]');
-    const wsplit = SplitText.create(whisper, { type: 'lines', mask: 'lines' });
-    gsap.from(wsplit.lines, { yPercent: 110, duration: 1.4, ease: EASE, stagger: 0.1, scrollTrigger: { trigger: whisper, start: 'top 80%' } });
-  });
+    $$('#studio [data-reveal], #contact [data-reveal]').forEach((el) => gsap.from(el, { opacity: 0, y: 28, duration: 1.2, ease: EASE, scrollTrigger: { trigger: el, start: 'top 88%', once: true } }));
+    gsap.from('.studio__fact-v', { yPercent: 60, opacity: 0, duration: 1.3, ease: EASE, stagger: 0.08, scrollTrigger: { trigger: '.studio__facts', start: 'top 85%', once: true } });
+  }));
   if (!reduced) {
     if (lenis) skewOnScroll(velocity, scope, view);
     marquee(velocity, scope, view);
     if (!coarse) chromeMark(scope);
   }
+  strings(view, scope, { reduced, coarse });
 
   // ---------- Where in-page links land ----------
   function target(hash: string): { el: Element; offset?: number; label?: string } | null {
@@ -852,36 +671,39 @@ export function mount({ scope, view, first }: PageCtx): PageHandle {
     let el: HTMLElement | null = null;
     try { el = view.querySelector<HTMLElement>(hash); } catch { return null; }
     if (!el) return null;
-    if (hash === '#contact') return { el, offset: innerHeight * 1.05 };
-    if (hash === '#work') return { el, offset: 0 };
-    // sections open with a lot of air; land where their first line sits below the nav
+    if (el.matches('[data-card]')) return { el, offset: -Math.max(96, (innerHeight - el.getBoundingClientRect().height) / 2) };
+    if (hash === '#contact') return { el, offset: 0 };
     const pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
     return { el, offset: Math.max(0, pad - 110) };
   }
   const targetY = (h: string) => { const t = target(h); return t ? Math.max(0, t.el.getBoundingClientRect().top + scrollY + (t.offset ?? 0)) : 0; };
 
-  // ---------- Layout changes rebuild the line ----------
+  // ---------- Layout changes: measure the covers again, and lay the ribbon again ----------
   let rt = 0;
-  const rebuild = () => { if (scope.dead) return; ScrollTrigger.refresh(); buildLine(); chrome.sizeIsland(); };
-  scope.on(window, 'resize', () => { clearTimeout(rt); rt = window.setTimeout(rebuild, 200); });
+  const rebuild = () => { if (scope.dead) return; ScrollTrigger.refresh(); chrome.sizeIsland(); w?.cards.layout(); buildRibbon(); w?.invalidate(); };
+  const resized = resizeFilter(coarse);
+  scope.on(window, 'resize', () => { if (!resized()) return; clearTimeout(rt); rt = window.setTimeout(rebuild, 200); });
   document.fonts?.ready.then(rebuild);
   scope.on(window, 'load', rebuild);
   scope.observe(new ResizeObserver(() => { clearTimeout(rt); rt = window.setTimeout(rebuild, 200); })).observe(view);
   scope.add(() => clearTimeout(rt));
+  // the ribbon is laid in a task of its own too (it is drawn on after the loader in any case)
+  later(() => buildRibbon());
 
   return {
     target,
-    intro: () => { if (!first) { intro(); } },
+    intro: () => { if (!first) intro(); },
     destroy() {
       if (w) {
         w.hooks.length = 0;
-        w.emblemState.alpha = 0;
-        w.releaseChapters();
+        w.moonState.alpha = 0;
+        w.cards.release();
+        w.ribbon.setHead(0);
+        w.invalidate();
+        w.frame(0);
         canvas.hidden = true;
         canvas.classList.remove('world--top');
       }
-      if (line) line.geometry.setDrawRange(0, 0);
-      if (bead) bead.mesh.visible = false;
       document.documentElement.classList.remove('is-ready');
       sound.night(0);
     },

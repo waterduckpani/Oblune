@@ -88,8 +88,14 @@ class Sound {
    */
   async probe(): Promise<boolean> {
     if (!this.wanted) return true;
-    if (!this.ctx) this.start();
-    const c = this.ctx!;
+    // Making a context only to ask costs a long task at start-up (and a fresh visit is held back in
+    // every browser anyway): without one, take the browser's own answer if it gives one, else ask.
+    if (!this.ctx) {
+      const nav = navigator as Navigator & { getAutoplayPolicy?: (t: string) => string };
+      try { const policy = nav.getAutoplayPolicy?.('audiocontext'); if (policy) return policy === 'allowed'; } catch { /* not supported */ }
+      return false;
+    }
+    const c = this.ctx;
     if (c.state === 'running') return true;
     return new Promise<boolean>((r) => {
       const t = setTimeout(() => r(c.state === 'running'), 320);
@@ -142,15 +148,23 @@ class Sound {
     this.analyser.fftSize = 64;
     this.master.connect(comp).connect(this.analyser).connect(c.destination);
 
-    // a generated hall, so notes have somewhere to go
+    // a generated hall, so notes have somewhere to go. Its three seconds of noise are written a slice
+    // per task (all at once, it would hold up the page's start); nothing plays before you enter anyway.
     const verb = c.createConvolver();
-    const len = c.sampleRate * 3.2;
+    const len = Math.floor(c.sampleRate * 3.2);
     const ir = c.createBuffer(2, len, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = ir.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
-    }
-    verb.buffer = ir;
+    const L = ir.getChannelData(0), R = ir.getChannelData(1);
+    let at = 0;
+    const fill = () => {
+      const end = Math.min(len, at + 24000);
+      for (; at < end; at++) {
+        const e = Math.pow(1 - at / len, 3.2);
+        L[at] = (Math.random() * 2 - 1) * e;
+        R[at] = (Math.random() * 2 - 1) * e;
+      }
+      if (at < len) setTimeout(fill, 0); else verb.buffer = ir;
+    };
+    fill();
     this.wet = c.createGain();
     this.wet.gain.value = 0.55;
     this.wet.connect(verb).connect(this.master);

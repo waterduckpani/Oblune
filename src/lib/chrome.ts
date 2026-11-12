@@ -74,7 +74,17 @@ export function initChrome(opts: { lenis: Lenis | null; reduced: boolean }) {
   const now = q('[data-now]');
   const sizeIsland = () => island.style.setProperty('--w', `${Math.ceil(bar.getBoundingClientRect().width)}px`);
 
+  // the menu's pictures are only fetched the first time it opens (they would otherwise load with the page)
+  let menuImages = false;
   function openIsland() {
+    if (!menuImages) {
+      menuImages = true;
+      island.querySelectorAll<HTMLElement>('[data-menu-img]').forEach((slot) => {
+        const img = new Image(800, 500);
+        img.alt = ''; img.decoding = 'async'; img.src = slot.dataset.menuImg!;
+        slot.append(img);
+      });
+    }
     island.dataset.open = 'true';
     islandToggle.setAttribute('aria-expanded', 'true');
     islandPanel.removeAttribute('inert');
@@ -116,11 +126,10 @@ export function initChrome(opts: { lenis: Lenis | null; reduced: boolean }) {
     clock.textContent = `New Delhi, ${t} · open to new work`;
   }
 
-  /** Home or a case page: the menu's projects lead to their chapter at home, or their case study. */
-  function setMode(mode: 'home' | 'case', current?: string) {
-    qa<HTMLAnchorElement>('[data-home-href]').forEach((a) => {
-      a.href = mode === 'home' ? a.dataset.homeHref! : a.dataset.awayHref!;
-      a.setAttribute('aria-current', String(a.dataset.menuItem === current));
+  /** Home or a case page: every project in the menu opens its case study; the one you are on is marked. */
+  function setMode(_mode: 'home' | 'case', current?: string) {
+    qa<HTMLAnchorElement>('[data-menu-item]').forEach((a) => {
+      if (a.dataset.menuItem === current) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
   }
 

@@ -41,8 +41,11 @@ uniform vec3 uBlank;
 
 float sdRR(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
 
-vec3 screenA(vec2 uv) { return mix(uBlank, texture2D(uTexA, uv * uXformA.xy + uXformA.zw).rgb, uReadyA); }
-vec3 screenB(vec2 uv) { return mix(uBlank, texture2D(uTexB, uv * uXformB.xy + uXformB.zw).rgb, uReadyB); }
+// a negative lod bias keeps small type crisp: trilinear filtering otherwise blends in the next,
+// blurrier mip level as soon as a screen is drawn even slightly smaller than its texture
+#define LOD_BIAS -0.65
+vec3 screenA(vec2 uv) { return mix(uBlank, texture2D(uTexA, uv * uXformA.xy + uXformA.zw, LOD_BIAS).rgb, uReadyA); }
+vec3 screenB(vec2 uv) { return mix(uBlank, texture2D(uTexB, uv * uXformB.xy + uXformB.zw, LOD_BIAS).rgb, uReadyB); }
 
 void main() {
   vec2 p = (vUv - 0.5) * uGlass;

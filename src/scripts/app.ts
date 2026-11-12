@@ -18,7 +18,8 @@ import { enter, needsEnter } from '../lib/enter';
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
 if (!app.reduced) {
-  const lenis = new Lenis({ lerp: 0.1, wheelMultiplier: 1 });
+  // a touch heavier than Lenis's default glide; touch keeps the phone's own scrolling (syncTouch off)
+  const lenis = new Lenis({ lerp: 0.08, wheelMultiplier: 1, syncTouch: false });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);

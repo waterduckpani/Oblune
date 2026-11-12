@@ -4,6 +4,19 @@ import { emblemPath } from './phase';
 import { moonTonight } from './moonphase';
 import type { Scope } from './scope';
 
+/**
+ * A resize worth laying the page out again for. On a phone the toolbar sliding away mid-scroll
+ * changes only the height, a little; relaying out then would stall the scroll for nothing.
+ */
+export function resizeFilter(coarse: boolean) {
+  let w = innerWidth, h = innerHeight;
+  return () => {
+    if (coarse && innerWidth === w && Math.abs(innerHeight - h) < h * 0.25) return false;
+    w = innerWidth; h = innerHeight;
+    return true;
+  };
+}
+
 /** Buttons lean toward the pointer, and the label a little further. */
 export function magnetic(root: ParentNode = document) {
   root.querySelectorAll<HTMLElement>('[data-magnetic]').forEach((el) => {
@@ -77,24 +90,43 @@ export function kinetic(lines: HTMLElement[], scope: Scope) {
       const target = base[i] + (peak[i] - base[i]) * f * f * (3 - 2 * f);
       const next = w[i] + (target - w[i]) * 0.14;
       if (Math.abs(next - w[i]) > 0.3) moving = true;
+      const shown = Math.round(w[i] / 6), now = Math.round(next / 6);
       w[i] = next;
-      c.style.fontVariationSettings = `'wght' ${next.toFixed(1)}`;
+      // weights in steps of 6: each change relays out the line, so only real changes are written
+      if (shown !== now) c.style.fontVariationSettings = `'wght' ${now * 6}`;
     });
     if (!moving && px < 0) active = false;
   });
   return split;
 }
 
-/** Giant type leans with scroll velocity. */
+/**
+ * Giant type leans with scroll velocity. Only the titles on screen lean, each on its own GPU layer
+ * while it does, so the lean never repaints the type (metallic gradient text is costly to paint).
+ */
 export function skewOnScroll(getVelocity: () => number, scope: Scope, root: ParentNode) {
-  const els = [...root.querySelectorAll<HTMLElement>('[data-chapter-name], .practice__title, .contact__whisper')];
-  const setters = els.map((el) => gsap.quickTo(el, 'skewX', { duration: 0.5, ease: 'power3.out' }));
-  let last = 0;
-  scope.tick(() => {
-    const v = Math.round(gsap.utils.clamp(-6, 6, -getVelocity() * 0.18) * 20) / 20;
-    if (v === last) return;
-    last = v;
-    setters.forEach((s) => s(v));
+  const els = [...root.querySelectorAll<HTMLElement>('.studio__title, .contact__title')];
+  // eased here rather than by a tween per title: a tween killed off screen cannot be aimed again
+  const state = new Map(els.map((el) => [el, { set: gsap.quickSetter(el, 'skewX', 'deg') as (v: number) => void, v: 0 }]));
+  const seen = new Set<HTMLElement>();
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+    const el = e.target as HTMLElement;
+    const s = state.get(el)!;
+    if (e.isIntersecting) { seen.add(el); el.style.willChange = 'transform'; }
+    else { seen.delete(el); s.v = 0; s.set(0); el.style.willChange = ''; }
+  }), { rootMargin: '15% 0px' });
+  els.forEach((el) => io.observe(el));
+  scope.add(() => io.disconnect());
+  scope.tick((_, delta) => {
+    if (!seen.size) return;
+    const target = gsap.utils.clamp(-6, 6, -getVelocity() * 0.18);
+    const k = 1 - Math.exp(-7 * Math.min(delta, 50) / 1000);
+    seen.forEach((el) => {
+      const s = state.get(el)!;
+      if (Math.abs(target - s.v) < 0.02) { if (s.v !== target) { s.v = target; s.set(Math.round(target * 100) / 100); } return; }
+      s.v += (target - s.v) * k;
+      s.set(Math.round(s.v * 100) / 100);
+    });
   });
 }
 
@@ -156,16 +188,38 @@ export function marquee(getVelocity: () => number, scope: Scope, root: ParentNod
   const track = root.querySelector<HTMLElement>('[data-marquee]');
   if (!track) return;
   let x = 0, dir = -1, boost = 0;
+  // where it is and how wide, from observers: measured each frame, they would force a layout each frame
+  let near = false, half = track.scrollWidth / 2;
+  const io = new IntersectionObserver(([e]) => { near = e.isIntersecting; }, { rootMargin: '200px 0px' });
+  const ro = new ResizeObserver(() => { half = track.scrollWidth / 2; });
+  io.observe(track); ro.observe(track);
+  scope.add(() => { io.disconnect(); ro.disconnect(); });
   scope.tick((_, delta) => {
-    const r = track.getBoundingClientRect();
-    if (r.bottom < -200 || r.top > innerHeight + 200) return;
+    if (!near || !half) return;
     const v = getVelocity();
     if (Math.abs(v) > 0.5) dir = v > 0 ? -1 : 1;
     boost += (Math.min(18, Math.abs(v)) - boost) * 0.1;
     x += dir * (0.045 + boost * 0.02) * delta;
-    const half = track.scrollWidth / 2;
     if (x <= -half) x += half;
     if (x > 0) x -= half;
     track.style.transform = `translate3d(${x.toFixed(2)}px,0,0)`;
+  });
+}
+
+/**
+ * Words rise into place one after another when the element arrives. Each word's mask gets room for
+ * italic overhangs and tight tracking (so no glyph is ever cut), and the split is undone once the
+ * words have landed, leaving the original text exactly as it was.
+ */
+export function riseWords(el: HTMLElement, opts: { start?: string; stagger?: number } = {}) {
+  const split = SplitText.create(el, { type: 'words', mask: 'words' });
+  (split.masks as HTMLElement[]).forEach((m) => {
+    m.style.padding = '0.12em 0.16em 0.2em 0.06em';
+    m.style.margin = '-0.12em -0.16em -0.2em -0.06em';
+  });
+  return gsap.from(split.words, {
+    yPercent: 115, duration: 1.3, ease: 'expo.out', stagger: opts.stagger ?? 0.035,
+    scrollTrigger: { trigger: el, start: opts.start ?? 'top 86%', once: true },
+    onComplete: () => split.revert(),
   });
 }

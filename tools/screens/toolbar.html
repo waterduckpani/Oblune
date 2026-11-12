@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- A quiet browser toolbar (1440x44 CSS) for desktop captures. ?url=example.com -->
+<!-- A quiet browser toolbar (1440x44 CSS) for desktop captures. ?url=example.com&tint=rrggbb -->
 <html><head><meta charset="utf-8" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +12,16 @@
 </style></head>
 <body><div class="dots"><i></i><i></i><i></i></div><div class="url" id="url"></div>
 <script type="module">
-  const url = new URLSearchParams(location.search).get('url') || '';
+  const q = new URLSearchParams(location.search);
+  const url = q.get('url') || '';
+  // ?tint=f2e6c9: the bar takes the page's colour, as Safari does
+  if (q.get('tint')) {
+    const t = `#${q.get('tint')}`, mix = (k) => `color-mix(in srgb, ${t} ${k}%, #4a4a48)`;
+    document.body.style.background = t;
+    document.body.style.borderColor = mix(84);
+    document.getElementById('url').style.background = mix(91);
+    document.querySelectorAll('.dots i').forEach((i) => { i.style.background = mix(82); });
+  }
   const lock = (await (await fetch('/node_modules/@phosphor-icons/core/assets/fill/lock-simple-fill.svg')).text()).replace('<svg ', '<svg fill="currentColor" ');
   document.getElementById('url').innerHTML = lock + `<span>${url}</span>`;
   await document.fonts.ready; window.__done = true;

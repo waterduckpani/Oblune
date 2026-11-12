@@ -60,6 +60,7 @@ export function createRouter() {
     wave(v); fillFrom(v); copyEmail(v);
     if (!app.coarse && !app.reduced) magnetic(v);
     const mod = await PAGES[v.dataset.page ?? 'home']();
+    await mod.prepare?.();
     page = await mod.mount({ scope, view: v, first });
   }
 

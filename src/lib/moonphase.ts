@@ -9,11 +9,14 @@ export function moonTonight(date = new Date()) {
   const lit = (1 - Math.cos((2 * Math.PI * age) / SYNODIC)) / 2;
   const waxing = age < SYNODIC / 2;
   const pct = Math.round(lit * 100);
-  const name =
-    pct <= 2 ? 'a new moon' :
+  return { lit, pct, waxing, name: phaseName(pct, waxing) };
+}
+
+/** What the moon is called at a percentage lit, waxing or waning: 'a waxing crescent'. */
+export function phaseName(pct: number, waxing: boolean) {
+  return pct <= 2 ? 'a new moon' :
     pct >= 98 ? 'a full moon' :
     pct < 45 ? (waxing ? 'a waxing crescent' : 'a waning crescent') :
     pct <= 55 ? (waxing ? 'the first quarter' : 'the last quarter') :
     waxing ? 'a waxing gibbous' : 'a waning gibbous';
-  return { lit, pct, waxing, name };
 }

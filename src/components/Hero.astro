@@ -1,37 +1,14 @@
 ---
 import Icon from './Icon.astro';
-// The dial: 72 ticks every 5 degrees, longer every 30, and the four phases at the cardinal points.
-const ticks = Array.from({ length: 72 }, (_, i) => {
-  const a = (i * 5 * Math.PI) / 180;
-  const long = i % 6 === 0;
-  const r1 = 47.2, r2 = long ? 44.6 : 46;
-  return { x1: Math.cos(a) * r1, y1: Math.sin(a) * r1, x2: Math.cos(a) * r2, y2: Math.sin(a) * r2, long };
-});
-const names = [
-  { t: 'New', a: -90 }, { t: 'First quarter', a: 0 }, { t: 'Full', a: 90 }, { t: 'Last quarter', a: 180 },
-];
 ---
 <section class="hero" aria-labelledby="hero-title">
 
   <div class="hero__grid container">
-    <svg class="hero__dial" viewBox="-50 -50 100 100" aria-hidden="true" data-dial>
-      <g data-dial-spin>
-        <circle class="hero__dial-ring" r="47.2" />
-        <circle class="hero__dial-ring hero__dial-ring--in" r="41" />
-        {ticks.map((k) => <line class={k.long ? 'hero__tick hero__tick--long' : 'hero__tick'} x1={k.x1} y1={k.y1} x2={k.x2} y2={k.y2} />)}
-      </g>
-      {names.map((nm) => {
-        // inside the ring; the side names run along it so they never reach the moon
-        const r = 37.8, a = (nm.a * Math.PI) / 180, x = Math.cos(a) * r, y = Math.sin(a) * r;
-        const turn = nm.a === 0 ? 90 : nm.a === 180 ? -90 : 0;
-        return <text class="hero__dial-name" x={x} y={y} transform={`rotate(${turn} ${x} ${y})`} text-anchor="middle" dominant-baseline={nm.a === -90 ? 'hanging' : nm.a === 90 ? 'auto' : 'middle'}>{nm.t}</text>;
-      })}
-      <g data-dial-needle><line class="hero__needle" x1="0" y1="-41" x2="0" y2="-47.2" /><circle class="hero__needle-bead" cx="0" cy="-47.2" r="0.9" /></g>
-    </svg>
-    <button class="hero__moon" type="button" data-moon-anchor="hero" data-moon-cycle aria-label="Play the moon’s phases" data-cursor="Play">
-      <img class="hero__fallback" src="/emblem-chrome.svg" alt="" width="320" height="320" />
+    <button class="hero__moon" type="button" data-moon-anchor="hero" aria-label="The Oblune moon. Drag it, or use the arrow keys, to turn it through a month; press to play a whole month" aria-describedby="hero-phase" data-cursor="Drag">
+      <img class="hero__fallback" src="/emblem-chrome.svg" alt="" width="320" height="320" draggable="false" />
     </button>
     <p class="hero__eyebrow meta" data-hero-foot>Oblune Studio<span class="hero__sep">/</span>Independent product studio</p>
+    <p class="hero__aside meta" id="hero-phase" data-hero-foot><span class="hero__phase-dot" aria-hidden="true"></span><span data-hero-phase>Drag the moon through its month</span></p>
 
     <h1 class="hero__title" id="hero-title" data-hero-title>
       <span class="hero__line">I design products,</span>{' '}
@@ -39,9 +16,10 @@ const names = [
     </h1>
 
     <div class="hero__foot" data-hero-foot>
+      <span data-string aria-hidden="true"></span>
       <p class="hero__sub">
-        Oblune is the one-person studio of Bharat&nbsp;Khanna. iOS apps, AI tools, websites and
-        online stores, from the first sketch to the release.
+        Oblune is Bharat Khanna, a one-person studio in New Delhi. Apps, AI tools, websites and stores,
+        designed and built end to end.
       </p>
       <div class="hero__ctas">
         <a class="btn btn--solid" href="#work" data-magnetic>
@@ -66,25 +44,13 @@ const names = [
   .hero__moon {
     position: absolute; z-index: 2;
     width: min(31vw, 52vh); aspect-ratio: 1;
-    right: calc(var(--gutter) + 4vw); top: calc(46% - min(33vw, 54vh) * 0.62);
+    right: calc(var(--gutter) + 10vw); top: calc(46% - min(33vw, 54vh) * 0.62);
     border: 0; padding: 0; background: none; border-radius: 50%;
-    cursor: pointer;
+    cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none;
   }
+  .hero__moon:active { cursor: grabbing; }
   .hero__moon:focus-visible { outline-offset: 16px; border-radius: 50%; }
   .hero__fallback { width: 100%; height: 100%; opacity: 0; }
-  .hero__dial {
-    position: absolute; z-index: 1;
-    width: calc(min(31vw, 52vh) * 1.72); aspect-ratio: 1;
-    right: calc(var(--gutter) + 4vw - min(31vw, 52vh) * 0.36); top: calc(46% - min(31vw, 52vh) * 0.62 - min(31vw, 52vh) * 0.36);
-    overflow: visible; pointer-events: none; color: var(--ink);
-  }
-  .hero__dial-ring { fill: none; stroke: currentColor; stroke-opacity: 0.18; stroke-width: 0.12; }
-  .hero__dial-ring--in { stroke-dasharray: 0.4 1.2; stroke-opacity: 0.28; }
-  .hero__tick { stroke: currentColor; stroke-opacity: 0.28; stroke-width: 0.12; }
-  .hero__tick--long { stroke-opacity: 0.55; stroke-width: 0.16; }
-  .hero__dial-name { font-family: var(--mono); font-size: 1.6px; fill: var(--ink-2); letter-spacing: 0.02em; }
-  .hero__needle { stroke: currentColor; stroke-width: 0.25; }
-  .hero__needle-bead { fill: currentColor; }
   :global(.no-webgl) .hero__fallback { opacity: 1; }
 
   .hero__grid {
@@ -98,7 +64,12 @@ const names = [
   }
   .hero__grid a, .hero__grid button, .hero__title, .hero__sub { pointer-events: auto; }
   .hero__eyebrow { grid-column: 1 / span 6; grid-row: 1; color: var(--ink); }
-  .hero__aside { grid-column: 7 / -1; grid-row: 1; text-align: right; color: var(--ink-2); }
+  /* the moon's readout: a hint until you touch it, then the phase you have turned it to */
+  .hero__aside { grid-column: 7 / -1; grid-row: 1; justify-self: end; display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .hero__phase-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; animation: hero-dot 2.4s var(--ease-in-out) infinite; }
+  :global(html[data-moon-touched]) .hero__phase-dot { animation: none; opacity: 0.35; }
+  @keyframes hero-dot { 0%, 100% { transform: scale(0.6); opacity: 0.25; } 50% { transform: scale(1.2); opacity: 0.8; } }
+  @media (prefers-reduced-motion: reduce) { .hero__phase-dot { animation: none; } }
   .hero__sep { margin: 0 0.7em; color: var(--ink-3); }
 
   .hero__title {
@@ -116,20 +87,20 @@ const names = [
     grid-column: 1 / -1; grid-row: 4;
     margin-top: clamp(24px, 4vh, 44px);
     display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap;
-    padding-top: 20px; border-top: 1px solid var(--line);
+    padding-top: 20px; position: relative;
   }
-  .hero__sub { max-width: 40ch; font-size: clamp(16px, 1.15vw, 19px); line-height: 1.45; color: var(--ink-2); }
+  .hero__sub { max-width: 44ch; text-wrap: pretty; font-size: clamp(16px, 1.15vw, 19px); line-height: 1.45; color: var(--ink-2); }
   .hero__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
 
   @media (max-width: 860px) {
     .hero { height: auto; min-height: 100svh; }
-    .hero__grid { grid-template-rows: auto auto 1fr auto auto; padding-top: 84px; }
-    .hero__aside { display: none; }
+    .hero__grid { grid-template-rows: auto auto auto 1fr auto auto; padding-top: 84px; }
+    .hero__aside { grid-column: 1 / -1; grid-row: 3; justify-self: center; align-self: start; margin: 12px 0 5svh; }
     .hero__eyebrow { grid-column: 1 / -1; }
     .hero__moon { position: relative; grid-column: 1 / -1; grid-row: 2; right: auto; top: auto; width: min(64vw, 34svh); margin: 5svh auto 0; display: block; }
-    .hero__title { font-size: clamp(44px, 12.4vw, 76px); }
+    .hero__title { font-size: clamp(44px, 12.4vw, 76px); grid-row: 5; }
+    .hero__foot { grid-row: 6; }
     .hero__line--soft { padding-left: 0; }
     .hero__foot { flex-direction: column; align-items: flex-start; }
-    .hero__dial { display: none; }
   }
 </style>

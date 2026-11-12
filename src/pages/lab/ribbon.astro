@@ -1,0 +1,57 @@
+---
+// Lab page: the ribbon and the moon in one page-space scene. ?mat=chrome|ink&head=0..1
+import '../../styles/global.css';
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Ribbon lab</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #ecece9; }
+      canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+      h1 { position: absolute; left: 48px; bottom: 120px; z-index: 2; margin: 0; font: 600 clamp(60px, 8vw, 150px)/0.9 Satoshi, sans-serif; letter-spacing: -0.06em; color: #141416; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <h1>I design products,<br /><i style="font-weight:340">then I build them.</i></h1>
+    <script>
+      import * as THREE from 'three';
+      import { Moon, studio, type MoonState } from '../../lib/world/Moon';
+      import { Ribbon, orbit } from '../../lib/world/Ribbon';
+      const q = new URLSearchParams(location.search);
+      const canvas = document.getElementById('c') as HTMLCanvasElement;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setSize(innerWidth, innerHeight, false);
+      renderer.setClearColor(0, 0);
+      renderer.toneMapping = THREE.NeutralToneMapping;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      const scene = new THREE.Scene();
+      scene.environment = studio(renderer);
+      const vw = innerWidth, vh = innerHeight;
+      const cam = new THREE.OrthographicCamera(0, vw, 0, -vh, -4000, 4000);
+      cam.position.set(0, 0, 2000);
+      const moon = new Moon();
+      scene.add(moon.root);
+      const mw = Math.min(vw * 0.31, vh * 0.52) / (1 / (4.2 * 0.37));
+      const cx = vw * 0.68, cy = vh * 0.42;
+      const s: MoonState = { rect: { x: cx - mw / 2, y: cy - mw / 2, w: mw }, lit: 0.75, tilt: { x: 0.25, y: 0.1 }, light: { x: 0, y: 0 }, alpha: 1, shadow: 1, night: 0, scale: 1 };
+      moon.update(s, 0);
+      const R = Math.min(vw * 0.31, vh * 0.52) / 2;
+      const mat = q.get('mat') || 'chrome';
+      const rib = new Ribbon(13);
+      if (mat === 'night') { rib.setNight(1); document.body.style.background = '#0a0a0c'; s.night = 1; moon.update(s, 0); }
+      scene.add(rib.mesh); (window as any).__rib = rib;
+      const route: { x: number; y: number; z?: number }[] = [];
+      // from the top right, behind the moon across the top, round the left, in front along the bottom, away right
+      orbit(route, { x: cx, y: cy }, R * 1.55, R * 0.44, -0.42, -0.2 * Math.PI, -1.56 * Math.PI, R * 1.3, R * 2.6, R * 0.5, 48);
+      route.push({ x: cx + R * 1.75, y: cy + R * 0.18, z: 30 }, { x: cx + R * 2.3, y: cy + R * 0.5, z: 0 }, { x: vw + 220, y: cy + R * 1.4, z: 0 });
+      rib.setRoute(route);
+      rib.setHead(rib.total * Number(q.get('head') ?? 1));
+      renderer.render(scene, cam);
+      (window as any).__ready = true;
+    </script>
+  </body>
+</html>

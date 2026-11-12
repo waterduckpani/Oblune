@@ -22,6 +22,16 @@ export function initCursor(reduced: boolean) {
   const text = root.querySelector<HTMLElement>('[data-cur-text]')!;
   document.documentElement.classList.add('has-cur');
 
+  // a modal dialog (the code, a live site, a screen up close) is drawn in the top layer, above
+  // everything else, the cursor included: while one is open the cursor lives inside it
+  const home = root.parentElement!;
+  const follow = () => {
+    const top = [...document.querySelectorAll('dialog')].filter((d) => d.open && d.matches(':modal')).pop();
+    const host = top ?? home;
+    if (root.parentElement !== host) host.append(root);
+  };
+  new MutationObserver(follow).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
+
   const p = { x: -100, y: -100 };
   const r = { x: -100, y: -100, vx: 0, vy: 0 };
   const l = { x: -100, y: -100 };
@@ -51,13 +61,16 @@ export function initCursor(reduced: boolean) {
     set('');
   });
 
+  // only what moved is written: a style write every frame costs a style pass every frame
+  let dotT = '', ringT = '', labelT = '';
+  const put = (el: HTMLElement, t: string, prev: string) => { if (t !== prev) el.style.transform = t; return t; };
   gsap.ticker.add((_, delta) => {
     if (!seen) return;
     const dt = Math.min(delta / 1000, 1 / 30);
-    dot.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+    dotT = put(dot, `translate3d(${p.x}px, ${p.y}px, 0)`, dotT);
     if (reduced) {
       r.x = l.x = p.x; r.y = l.y = p.y;
-      ring.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+      ringT = put(ring, `translate3d(${p.x}px, ${p.y}px, 0)`, ringT);
     } else {
       // a slightly underdamped spring, sub-stepped so it holds at any frame rate
       const k = 340, c = 30, n = Math.max(1, Math.ceil(dt / 0.006));
@@ -68,11 +81,12 @@ export function initCursor(reduced: boolean) {
       }
       const speed = Math.hypot(r.vx, r.vy);
       const stretch = state === 'label' ? 1 : 1 + Math.min(0.35, speed / 4200);
-      const ang = Math.atan2(r.vy, r.vx);
-      ring.style.transform = `translate3d(${r.x}px, ${r.y}px, 0) rotate(${ang}rad) scale(${stretch}, ${1 / stretch})`;
+      // once it has nearly stopped, hold the angle, so a resting ring is not rewritten every frame
+      const ang = speed < 2 ? 0 : Math.atan2(r.vy, r.vx);
+      ringT = put(ring, `translate3d(${r.x.toFixed(1)}px, ${r.y.toFixed(1)}px, 0) rotate(${ang.toFixed(2)}rad) scale(${stretch.toFixed(3)}, ${(1 / stretch).toFixed(3)})`, ringT);
       l.x += (p.x - l.x) * (1 - Math.exp(-22 * dt));
       l.y += (p.y - l.y) * (1 - Math.exp(-22 * dt));
     }
-    label.style.transform = `translate3d(${l.x}px, ${l.y}px, 0)`;
+    labelT = put(label, `translate3d(${l.x.toFixed(1)}px, ${l.y.toFixed(1)}px, 0)`, labelT);
   });
 }

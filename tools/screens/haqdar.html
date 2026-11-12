@@ -1,7 +1,8 @@
 <!doctype html>
 <!--
-  Haqdar's four intake screens, re-set at native iPhone resolution (402x874pt @3x) from the bot's
-  own messages (as shown in haqdar/.github/readme/flow.png). Render with ?s=a|b|c|d at DPR 3.
+  Haqdar's intake screens, re-set at native iPhone resolution (402x874pt @3x) from the bot's
+  own messages (as shown in haqdar/.github/readme/flow.png). Render with ?s=a|b|c|d|e at DPR 3.
+  e (the start of an intake) is set from the strings in bot/main.py, with the Meena test persona's answers.
 -->
 <html lang="en">
 <head>
@@ -54,6 +55,10 @@
   .composer .field { flex: 1; height: 36px; border-radius: 18px; border: 0.5px solid rgba(0,0,0,0.18); background: #fff; display: flex; align-items: center; padding-left: 14px; color: #a7a7ab; font-size: 17px; }
   .home { position: absolute; bottom: 8px; left: 50%; width: 140px; height: 5px; border-radius: 3px; background: #0b0b0c; transform: translateX(-50%); z-index: 6; }
   em { font-style: italic; }
+  .bubble.short { padding-bottom: 8px; }
+  .bubble.short .t { position: static; display: inline-block; margin-left: 10px; transform: translateY(3px); }
+  .cmd { color: var(--blue); }
+  .day { align-self: center; margin: 4px 0 6px; padding: 3px 10px; border-radius: 12px; background: rgba(70, 90, 50, 0.32); color: #fff; font-size: 13.5px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -112,6 +117,16 @@
         <p><b>Why:</b> The household has no LPG connection, holds an AAY ration card, and Meena is an adult woman who can apply in her own name.<br><b>To confirm, also ask:</b> whether anyone in the household already has an LPG connection<br>⚠️ <em>She will need a bank account for refill subsidies; open one alongside.</em></p>
         <p><em>These are AI suggestions — verify before applying.</em></p><span class="t">10:45</span></div>
       ${btns([['🔗 Official page'], ['⬅ Back to all schemes']])}`,
+    e: `
+      <div class="day">Today</div>
+      <div class="bubble out short"><span class="cmd">/start</span><span class="t">10:38 ✓✓</span></div>
+      <div class="bubble in"><p>Hello! 👋 I help you record a family's details for welfare schemes.</p>
+        <p>Send <b>initiate</b> (or <span class="cmd">/initiate</span>) to begin an intake.</p><span class="t">10:38</span></div>
+      <div class="bubble out short">initiate<span class="t">10:39 ✓✓</span></div>
+      <div class="bubble in">Let's begin. 📍 Which <b>state</b> is the family in? (type it)<span class="t">10:39</span></div>
+      <div class="bubble out short">Bihar<span class="t">10:40 ✓✓</span></div>
+      <div class="bubble in"><p>State set to <b>Bihar</b>.</p><p>Is this a <b>rural</b> or <b>urban</b> area? (type one)</p><span class="t">10:40</span></div>
+      <div class="bubble out short">rural<span class="t">10:41 ✓✓</span></div>`,
   };
   stack.innerHTML = screens[s];
   await document.fonts.ready;

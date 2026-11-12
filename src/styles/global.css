@@ -49,11 +49,12 @@
   --z-content: 2;
   --z-nav: 20;
   --z-skip: 30;
-
-  transition: --ink 0.7s var(--ease-out), --ink-2 0.7s var(--ease-out), --ink-3 0.7s var(--ease-out),
-    --line 0.7s var(--ease-out), --line-strong 0.7s var(--ease-out), --bg 0.7s var(--ease-out);
+  /* no transition here: the root only turns night while the stage's night already fills the screen
+     (or under the curtain), and easing inherited inks at the root restyles every element per frame */
 }
-:root[data-night='true'] {
+/* the night colours: for the whole page at the end, and for the work, the dusk and the nav over
+   them while the stage draws their night (without WebGL there is no night, so they stay day) */
+:root[data-night='true'], html:not(.no-webgl) :is(.work, .dusk), .nav[data-tone='night'] {
   color-scheme: dark;
   --bg: #0a0a0c;
   --ink: #ecece9;
@@ -66,6 +67,13 @@
 *,
 *::before,
 *::after { box-sizing: border-box; }
+
+/* Lenis: while it is stopped (a window open, a page crossing) nothing scrolls the page underneath */
+html.lenis, html.lenis body { height: auto; }
+html.lenis { scrollbar-gutter: stable; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
 
 html {
   -webkit-text-size-adjust: 100%;
@@ -200,8 +208,8 @@ h1, h2, h3 { text-wrap: balance; }
 /* kinetic letters keep their layout steady while the weight changes */
 .kchar { display: inline-block; }
 
-/* The sky: a fixed layer that darkens to night at the end of the page. */
-.sky { position: fixed; inset: 0; z-index: 0; background: var(--night); opacity: 0; pointer-events: none; }
+.nav { transition: --ink 0.5s var(--ease-out), --ink-2 0.5s var(--ease-out), --line-strong 0.5s var(--ease-out), --bg 0.5s var(--ease-out); }
+
 
 /* Film grain, so the daylight reads as a surface, not a screen. Transform-only, so it stays on the compositor. */
 .grain { position: fixed; inset: 0; z-index: 40; pointer-events: none; overflow: hidden; opacity: 0.055; }
@@ -264,3 +272,8 @@ html.has-cur :is(input:not([type='radio']):not([type='checkbox']), textarea, [co
 html.quick .world--top { z-index: 1; }
 .view { position: relative; }
 .world[hidden] { display: none; }
+
+/* Strings (lib/strings.ts): hairlines you can pluck with the pointer. The svg is drawn in CSS px. */
+[data-string] { position: absolute; left: 0; right: 0; top: 0; height: 1px; pointer-events: none; }
+[data-string] svg { position: absolute; left: 0; top: -13px; width: 100%; height: 26px; overflow: visible; }
+[data-string] path { fill: none; stroke: var(--line-strong); stroke-width: 1px; }

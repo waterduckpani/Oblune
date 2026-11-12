@@ -83,7 +83,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'Sep 2026 to now',
     role: ['Product design', 'iOS engineering', 'Backend and sync', 'Launch site'],
-    image: { base: '/work/mull', alt: 'Mull screens in the dark theme: the home screen showing ₹6,050 owed, a payment to confirm, a monthly bill, and the launch site mullapp.in.' },
+    image: { base: '/work/mull', alt: 'Mull in the dark theme: the home screen up close, showing ₹6,050 owed in all, a payment to confirm and a monthly bill, with the list of who owes whom behind it.' },
     stage: { bg: '#0f0f11', glow: '#26262a', tone: 'dark' },
     live: { href: 'https://www.mullapp.in', label: 'Visit mullapp.in', host: 'mullapp.in' },
     repo: { slug: 'mull', url: gh('Mull') },
@@ -92,7 +92,6 @@ export const projects: Project[] = [
       { title: 'One number per person, across every ledger', text: 'The flat and the Goa trip net off against each other. You see what you owe each friend, once.', phone: 'home' },
       { title: 'Claimed, then confirmed by the person paid', text: 'Money moves over UPI, never through Mull. A payment only counts when the person who got it says it arrived.', phone: 'claim' },
       { title: 'Monthly bills that ask before they add', text: 'Rent and house help come back each month, and Mull checks with you before adding them.', phone: 'recurring_due' },
-      { title: 'A launch site, built alongside the app', text: 'mullapp.in tells the same story as a live constellation: six friends, one trip, one honest number each.', phone: 'site_m', desktop: 'site_hero' },
     ],
     metrics: [
       { value: '10', unit: 'days', label: 'from the repository’s first commit to version 1.0, ready for App Store review', source: 'GitHub, 19 to 29 Sep 2026' },
@@ -101,8 +100,8 @@ export const projects: Project[] = [
       { value: '24', label: 'test files across the app and its backend', source: 'The repository' },
     ],
     brief: [
-      'Splitting money in India runs on UPI, and every expense app I tried was built for somewhere else. They asked you to trust a single tap that said someone had paid, they coloured debts red and green like a bank statement, and they kept your flat and your trip in separate worlds.',
-      'I wanted one honest number for each friend, a payment that only counts once the other person confirms it, and rent that reminds you instead of quietly adding itself.',
+      'Splitting money in India runs on UPI, and every expense app I tried was built for somewhere else. One tap claimed someone had paid. Debts were red and green like a bank statement. The flat and the Goa trip lived in separate worlds.',
+      'So I built the one I wanted: one honest number for each friend, a payment that only counts once the other person confirms it, and rent that asks before it adds itself.',
     ],
     decisions: [
       { title: 'Net off, not add up', text: 'If you owe Ananya ₹2,000 for the trip and she owes you ₹3,000 for the flat, Mull says she owes you ₹1,000. Debts merge across groups into one balance per person, then the fewest payments that clear it.' },
@@ -125,8 +124,7 @@ export const projects: Project[] = [
       { src: tex('mull', 'claim'), kind: 'phone', alt: 'A payment waiting for the person paid to confirm it.' },
       { src: tex('mull', 'recurring_due'), kind: 'phone', alt: 'A monthly bill asking before it adds itself.' },
       { src: tex('mull', 'settle'), kind: 'phone', alt: 'Settle up: the fewest payments that clear the group.' },
-      { src: tex('mull', 'site_hero'), kind: 'desktop', alt: 'mullapp.in: Mull splits the bill, UPI settles it.' },
-      { src: tex('mull', 'site_number'), kind: 'desktop', alt: 'mullapp.in: one honest number each.' },
+      { src: tex('mull', 'recurring'), kind: 'phone', alt: 'Recurring costs for the flat, each one due on its date.' },
     ],
   },
   {
@@ -144,7 +142,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'Jul 2026 to now',
     role: ['Product design', 'iOS engineering', 'Recommendation engine', 'Data pipelines'],
-    image: { base: '/work/bite', alt: 'Bite screens: the swipeable news feed, a saved story and the algorithm view.' },
+    image: { base: '/work/bite', alt: 'Bite as a deck of cards: the saved stories, the discover view and the feed stacked behind a story being swiped away.' },
     stage: { bg: '#e6e0d3', glow: '#f5f2ea', tone: 'light' },
     repo: { slug: 'bite', url: gh('Bite') },
     cta: { label: 'Read the source', href: gh('Bite'), note: 'The Flutter app, the edge functions and the ranker.' },
@@ -161,7 +159,7 @@ export const projects: Project[] = [
       { value: '1 in 6', label: 'cards is chosen from outside your taste, so the feed keeps discovering', source: 'The ranker' },
     ],
     brief: [
-      'News apps either hand you an endless list of headlines or keep you inside their own reader, taking the reader away from the publisher who did the work.',
+      'News apps give you two bad options: an endless list of headlines, or a reader that keeps you away from the people who did the reporting.',
       'Bite turns the news into a deck of cards. Every swipe is a signal to a taste model, every story is rewritten into a short bite you can read on the card, and every card sends you to the publisher’s own page.',
     ],
     decisions: [
@@ -223,8 +221,8 @@ export const projects: Project[] = [
       { value: '4', label: 'channels on one agent and one memory: Telegram, Slack, Discord and the terminal', source: 'The README' },
     ],
     brief: [
-      'Agents that can send email, file issues and move money are useful right up until they do something you didn’t mean. Most runtimes treat safety as a prompt, and most send your data somewhere you can’t see.',
-      'Alfard runs on your own machine. Before anything irreversible happens it stops and asks you, on whichever channel you’re using, and it writes down what you said.',
+      'An agent that can send email, file issues and move money is useful right up until it does something you didn’t mean. Most runtimes treat safety as a line in the prompt, and send your data somewhere you can’t see.',
+      'Alfard runs on your own machine. Before anything irreversible happens it stops and asks you, on whichever channel you’re using, and writes down your answer.',
     ],
     decisions: [
       { title: 'The gate is structural', text: 'Every tool is registered at startup as reversible or irreversible, so an unclassified call is impossible. Irreversible calls halt and show the tool, the arguments and where the request came from.' },
@@ -257,7 +255,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'June 2026',
     role: ['Concept', 'Conversation design', 'Python engineering', 'On-device speech'],
-    image: { base: '/work/haqdar', alt: 'Three Haqdar screens in Telegram: the intake checklist and voice note, the matched schemes, and the reasoning for one scheme.' },
+    image: { base: '/work/haqdar', alt: 'Three Haqdar screens in Telegram, stepping down from left to right: the intake checklist and voice note, the matched schemes, and the reasoning for one scheme.' },
     stage: { bg: '#123c42', glow: '#1f5a5e', tone: 'dark' },
     repo: { slug: 'haqdar', url: gh('haqdar') },
     cta: { label: 'Read the source', href: gh('haqdar'), note: 'The bot, the Whisper server and the matching rules.' },
@@ -273,7 +271,7 @@ export const projects: Project[] = [
       { value: '2', unit: 'groups', label: 'Likely and Possibly, each match with its reasons and what is left to confirm', source: 'The matcher' },
     ],
     brief: [
-      'India runs hundreds of welfare schemes, and the families who qualify are often the least able to find them. The rules are scattered, in English and buried in PDFs, and a field worker sitting with a family has minutes, not hours.',
+      'India runs hundreds of welfare schemes, and the families who qualify are often the least able to find them. The rules are in English, buried in PDFs, and a field worker sitting with a family has minutes, not hours.',
       'Haqdar, Hindi and Urdu for the rightful claimant, collapses that into one voice note. I built it for the USAII Global AI Hackathon 2026, where it reached the finals.',
     ],
     decisions: [
@@ -291,6 +289,7 @@ export const projects: Project[] = [
     ],
     outcome: 'A working prototype, tested end to end against live schemes with test families, and a finalist at the USAII Global AI Hackathon 2026.',
     shots: [
+      { src: tex('haqdar', 'start'), kind: 'phone', alt: 'Starting an intake: the state, then rural or urban.' },
       { src: tex('haqdar', 'record'), kind: 'phone', alt: 'The intake checklist, answered in one voice note.' },
       { src: tex('haqdar', 'verify'), kind: 'phone', alt: 'The profile, ready to verify.' },
       { src: tex('haqdar', 'matches'), kind: 'phone', alt: 'The matched schemes: likely and possibly.' },
@@ -314,7 +313,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'June 2026 to now',
     role: ['Editorial design', 'Next.js engineering', 'AI pipeline', 'Newsletter'],
-    image: { base: '/work/article', alt: 'The Article homepage on desktop, “What’s actually happening in AI, explained like a smart friend would”, and a story on mobile.' },
+    image: { base: '/work/article', alt: 'The Article homepage lying on a desk like a paper, “What’s actually happening in AI, explained like a smart friend would”, with a story open on a phone set down on it.' },
     stage: { bg: '#ecd9a8', glow: '#f7ecd0', tone: 'light' },
     live: { href: 'https://www.articlenews.co', label: 'Read today’s edition', host: 'articlenews.co', embed: true },
     repo: { slug: 'article', url: gh('Article') },
@@ -331,8 +330,8 @@ export const projects: Project[] = [
       { value: '0', unit: 'editors', label: 'two scheduled jobs find, write and publish each edition', source: 'The README' },
     ],
     brief: [
-      'AI news is written for people who already understand AI. Everyone else gets jargon, hype, or both, and the people most affected by the technology are the ones least served by the coverage.',
-      'Article is a publication for them. It reads like a smart friend explaining the day, and it runs itself: gathering, rewriting, publishing and emailing without a human in the loop.',
+      'AI news is written for people who already understand AI. Everyone else gets jargon, hype, or both.',
+      'Article is for everyone else. It reads like a smart friend explaining the day, and it runs itself: it finds the stories, rewrites them, publishes them and emails them out with no person in the loop.',
     ],
     decisions: [
       { title: 'One shape for every story', text: 'Each story is rebuilt the same way: a plain title, a short summary, what’s happening, how it works and why it matters, with the original sources linked. A reader always knows where to look.' },
@@ -351,9 +350,13 @@ export const projects: Project[] = [
     shots: [
       { src: tex('article', 'd_home'), kind: 'desktop', alt: 'articlenews.co: what’s actually happening in AI, explained like a smart friend would.' },
       { src: tex('article', 'd_story'), kind: 'desktop', alt: 'A story, rebuilt in plain English.' },
+      { src: tex('article', 'd_vault'), kind: 'desktop', alt: 'The Vault: 500 stories and counting, by category.' },
+      { src: tex('article', 'd_whatis'), kind: 'desktop', alt: 'What even is AI? The explainer for anyone starting out.' },
       { src: tex('article', 'm_home'), kind: 'phone', alt: 'Today’s edition on a phone.' },
       { src: tex('article', 'm_story'), kind: 'phone', alt: 'A story on a phone.' },
       { src: tex('article', 'm_story2'), kind: 'phone', alt: 'How it works and why it matters.' },
+      { src: tex('article', 'm_vault'), kind: 'phone', alt: 'The Vault on a phone.' },
+      { src: tex('article', 'm_whatis'), kind: 'phone', alt: 'What even is AI? on a phone.' },
     ],
   },
   {
@@ -363,7 +366,7 @@ export const projects: Project[] = [
     phase: 'full',
     statusNote: 'Live, a briefing every day',
     context: { kind: 'cofounder', label: 'Co-founded, team of two' },
-    line: 'The world economy and the balance of power, briefed daily.',
+    line: 'Geopolitics and the economy, in five stories a day.',
     summary:
       'A daily briefing on the global economy and geopolitics for curious people. I co-founded it and built all of it as the only developer: the site, the publishing system, the newsletter and a globe that shows where the news is happening.',
     kind: 'Publication',
@@ -371,7 +374,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'June 2026 to now',
     role: ['Co-founder', 'Product design', 'Full-stack engineering', 'The globe', 'Newsletter'],
-    image: { base: '/work/power-policy', alt: 'Power & Policy on desktop and phone: today’s briefing beside a globe with the countries in the news lit.' },
+    image: { base: '/work/power-policy', alt: 'Power & Policy on a large display, today’s briefing beside a globe with the countries in the news lit, and the same briefing on a phone in front.' },
     stage: { bg: '#d9e2d3', glow: '#f1f4ec', tone: 'light' },
     live: { href: 'https://www.powerpolicy.in', label: 'Read today’s briefing', host: 'powerpolicy.in' },
     cta: { label: 'Read today’s briefing', href: 'https://www.powerpolicy.in', note: 'Live at powerpolicy.in, with a new briefing every day.' },
@@ -388,8 +391,8 @@ export const projects: Project[] = [
       { value: '1', unit: 'developer', label: 'on a team of two: I designed and built all of it', source: 'The team' },
     ],
     brief: [
-      'News about the world economy and geopolitics is written for people who already follow it. Tariffs, bond yields and a strait most people have never heard of set prices everywhere, and the coverage assumes you know why.',
-      'Power & Policy is a daily briefing for curious people who don’t. I co-founded it as a team of two and built all of it: the site, the publishing system, the newsletter, the globe, and the archive, glossary and threads that give each day its context.',
+      'Tariffs, bond yields and a strait most people have never heard of set prices everywhere. The coverage assumes you already know why.',
+      'Power & Policy is a daily briefing for curious people who don’t. We are a team of two, and I built all of it: the site, the publishing system, the newsletter, the globe, and the archive, glossary and threads that give each day its context.',
     ],
     decisions: [
       { title: 'The globe is the front page', text: 'The countries in today’s briefing are lit on a globe you can drag. Click one and its story opens in place, so the map is a way into the news, not decoration.' },
@@ -411,10 +414,15 @@ export const projects: Project[] = [
       { src: tex('power-policy', 'd_stories'), kind: 'desktop', alt: 'Five stories shaping the day, each with its key figure.' },
       { src: tex('power-policy', 'd_thread'), kind: 'desktop', alt: 'A thread: the Hormuz oil risk, as a timeline.' },
       { src: tex('power-policy', 'd_glossary'), kind: 'desktop', alt: 'The glossary, in plain language.' },
+      { src: tex('power-policy', 'd_briefing'), kind: 'desktop', alt: 'A full briefing, with what changed and why it matters.' },
+      { src: tex('power-policy', 'd_threads'), kind: 'desktop', alt: 'Stories still unfolding, each a thread of briefings.' },
+      { src: tex('power-policy', 'd_archive'), kind: 'desktop', alt: 'The archive: every briefing, filterable by theme.' },
       { src: tex('power-policy', 'm_home'), kind: 'phone', alt: 'Today’s briefing on a phone.' },
       { src: tex('power-policy', 'm_stories'), kind: 'phone', alt: 'The day’s stories on a phone.' },
       { src: tex('power-policy', 'm_thread'), kind: 'phone', alt: 'A thread on a phone.' },
       { src: tex('power-policy', 'm_glossary'), kind: 'phone', alt: 'The glossary on a phone.' },
+      { src: tex('power-policy', 'm_briefing'), kind: 'phone', alt: 'A briefing on a phone.' },
+      { src: tex('power-policy', 'm_threads'), kind: 'phone', alt: 'Stories still unfolding, on a phone.' },
     ],
   },
   {
@@ -432,7 +440,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'Feb 2026 to now',
     role: ['Learning design', 'Game design', 'Full-stack engineering', 'Market data'],
-    image: { base: '/work/stocky', alt: 'Stocky on desktop and phone: the dashboard, and a lesson on NVIDIA with its live chart.' },
+    image: { base: '/work/stocky', alt: 'Stocky on a phone, a lesson on short interest in NVIDIA, with the lesson’s live chart on a display turned away behind it.' },
     stage: { bg: '#dfeadf', glow: '#f6f4e6', tone: 'light' },
     repo: { slug: 'stocky', url: gh('stocky') },
     cta: { label: 'Read the source', href: gh('stocky'), note: 'Next.js front end, FastAPI back end, twenty lessons.' },
@@ -448,7 +456,7 @@ export const projects: Project[] = [
       { value: '4', unit: 'steps', label: 'in every lesson: a live chart, the idea, a game, then a challenge', source: 'The lesson model' },
     ],
     brief: [
-      'Investing is taught with made-up companies and definitions you forget by Friday. People don’t care about a hypothetical widget maker; they care about the stock they just read about.',
+      'Investing is taught with made-up companies and definitions you forget by Friday. Nobody cares about a hypothetical widget maker. They care about the stock they read about this morning.',
       'Stocky makes every lesson about a real stock you chose, in real time. A volatile stock teaches beta, a dividend payer teaches yield, and each concept ends in a game you play with that company’s numbers.',
     ],
     decisions: [
@@ -470,10 +478,13 @@ export const projects: Project[] = [
       { src: tex('stocky', 'd_chart'), kind: 'desktop', alt: 'NVIDIA’s live chart with its indicators.' },
       { src: tex('stocky', 'd_concept'), kind: 'desktop', alt: 'Short interest, explained with NVIDIA’s own numbers.' },
       { src: tex('stocky', 'd_game'), kind: 'desktop', alt: 'The Short Interest Radar minigame.' },
+      { src: tex('stocky', 'd_quiz'), kind: 'desktop', alt: 'The quick challenge at the end of a lesson.' },
+      { src: tex('stocky', 'd_search'), kind: 'desktop', alt: 'Searching for a ticker from the dashboard.' },
       { src: tex('stocky', 'm_chart'), kind: 'phone', alt: 'The chart on a phone.' },
       { src: tex('stocky', 'm_concept'), kind: 'phone', alt: 'A concept slide on a phone.' },
       { src: tex('stocky', 'm_game'), kind: 'phone', alt: 'A minigame on a phone.' },
       { src: tex('stocky', 'm_quiz'), kind: 'phone', alt: 'The quick challenge.' },
+      { src: tex('stocky', 'm_dash'), kind: 'phone', alt: 'The dashboard on a phone.' },
     ],
   },
 
@@ -493,7 +504,7 @@ export const projects: Project[] = [
     year: '2026',
     timeline: 'Freelance client',
     role: ['Store design', 'Shopify build', 'Payments and checkout', 'Conversion optimisation', 'Custom animations', 'Launch coordination'],
-    image: { base: '/work/viraj-mahajan', alt: 'The Viraj Mahajan store: a close-up of linen in the hero, the Signature Linen collection and a product page with one-tap checkout.' },
+    image: { base: '/work/viraj-mahajan', alt: 'The Viraj Mahajan store on two phones side by side: the linen close-up of the home page, and the Chameleon Linen Shirt’s product page.' },
     stage: { bg: '#17130f', glow: '#3d3127', tone: 'dark' },
     live: { href: 'https://virajmahajan.co', label: 'Visit the store', host: 'virajmahajan.co' },
     cta: { label: 'Visit the store', href: 'https://virajmahajan.co', note: 'Live at virajmahajan.co, taking orders across India.' },
@@ -506,10 +517,9 @@ export const projects: Project[] = [
     metrics: [
       { value: '164', label: 'size and colour variants across 8 pieces and 8 collections, live', source: 'virajmahajan.co, 30 Sep 2026' },
       { value: '₹0', label: 'spent on a theme: Shopify’s free Horizon, extended section by section', source: 'The build' },
-      { value: '3', unit: 'teams', label: 'brought into one launch: the brand, marketing and photography', source: 'The project' },
     ],
     brief: [
-      'Viraj Mahajan makes luxury menswear in India: linen and cotton shirts, kurtas and waistcoats with bespoke silhouettes and hand-finished details. The label had the clothes and the photography, but no store that felt as considered as either.',
+      'Viraj Mahajan makes luxury menswear in Delhi: linen shirts, kurtas and waistcoats with hand-finished details. The label had the clothes and the photography, but no store as considered as either.',
       'I designed and built the store end to end: the look, the Shopify back end, payments and checkout, conversion details and custom motion, and I worked with the brand’s marketing team and photographers so the launch came together as one thing.',
     ],
     decisions: [

@@ -1,0 +1,31 @@
+---
+// Between the day and the night: night rises over the page as a disc and keeps it, and the moon
+// below the words waxes from a sliver to full as it rises (home.ts drives both).
+---
+<section class="dusk" data-dusk aria-labelledby="dusk-words">
+  <h2 class="dusk__words" id="dusk-words" data-words>Every product here started as a <em>sliver.</em></h2>
+  <div class="dusk__moon" data-moon-anchor="dusk" aria-hidden="true"></div>
+  <p class="dusk__cap meta" aria-hidden="true"><span data-dusk-pct>4</span>% lit</p>
+</section>
+
+<style>
+  .dusk {
+    position: relative; z-index: 3; min-height: 150vh; min-height: 150svh;
+    display: grid; justify-items: center; align-content: center; row-gap: clamp(28px, 5vh, 56px);
+    padding: 22vh var(--gutter) 18vh;
+  }
+  .dusk__words {
+    max-width: 11em; text-align: center;
+    font-size: clamp(44px, 7vw, 132px); line-height: 0.95; letter-spacing: -0.06em; font-weight: 520;
+    color: var(--ink); padding-bottom: 0.08em;
+  }
+  .dusk__words em { font-weight: 300; }
+  /* the moon's slot: the stage draws it here */
+  .dusk__moon { width: min(26vw, 38vh); aspect-ratio: 1; margin-top: clamp(16px, 5vh, 64px); }
+  .dusk__cap { margin-top: -8px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  @media (max-width: 860px) {
+    .dusk { min-height: 120svh; }
+    .dusk__words { font-size: clamp(38px, 11vw, 64px); }
+    .dusk__moon { width: min(52vw, 32svh); }
+  }
+</style>

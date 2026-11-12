@@ -54,7 +54,7 @@ const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
           <ol class="menu__list">
             {projects.map((p, i) => (
               <li class="menu__li">
-                <a class="menu__link" href={`/work/${p.slug}`} data-home-href={`/#${p.slug}`} data-away-href={`/work/${p.slug}`} data-menu-item={p.slug}>
+                <a class="menu__link" href={`/work/${p.slug}`} data-menu-item={p.slug}>
                   <span class="menu__n meta">{String(i + 1).padStart(2, '0')}</span>
                   <span class="menu__glyph"><Moon lit={PHASES[p.phase].lit} size={16} /></span>
                   <span class="menu__name"><span data-wave>{p.name}</span></span>
@@ -65,8 +65,9 @@ const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
           </ol>
           <p class="menu__k meta">Studio</p>
           <ol class="menu__list menu__list--studio">
+            <li class="menu__li"><a class="menu__link menu__link--small" href="/#top" data-menu-item="home"><span class="menu__name"><span data-wave>Home</span></span></a></li>
             <li class="menu__li"><a class="menu__link menu__link--small" href="/#work" data-menu-item="work"><span class="menu__name"><span data-wave>All the work</span></span></a></li>
-            <li class="menu__li"><a class="menu__link menu__link--small" href="/#practice" data-menu-item="practice"><span class="menu__name"><span data-wave>Practice</span></span></a></li>
+            <li class="menu__li"><a class="menu__link menu__link--small" href="/#studio" data-menu-item="studio"><span class="menu__name"><span data-wave>Studio</span></span></a></li>
             <li class="menu__li"><a class="menu__link menu__link--small" href="/#contact" data-menu-item="contact"><span class="menu__name"><span data-wave>Work with me</span></span></a></li>
           </ol>
         </nav>
@@ -82,7 +83,7 @@ const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
           </figure>
           {projects.map((p) => (
             <figure class="menu__card" data-card={p.slug} data-on="false" style={`--card-bg: ${p.stage.bg}; --card-ink: ${p.stage.tone === 'dark' ? '#ecece9' : '#141416'}`}>
-              <div class="menu__card-img"><img src={`${p.image.base}-1400.webp`} alt="" width="1400" height="875" loading="lazy" decoding="async" /></div>
+              <div class="menu__card-img" data-menu-img={`${p.image.base}-menu.webp`}></div>
               <figcaption>
                 <span class="menu__card-t">{p.name}</span>
                 <span class="menu__card-x">{p.line}</span>
@@ -228,9 +229,11 @@ const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
   .island__panel {
     position: absolute; left: 0; right: 0; top: calc(var(--row) + 6px); padding: 8px 14px 14px;
     opacity: 0; pointer-events: none; visibility: hidden;
-    transition: opacity 0.3s var(--ease-out), visibility 0s 0.3s;
+    /* closed, its contents are skipped: otherwise every ease of the nav's inks restyles the whole menu */
+    content-visibility: hidden;
+    transition: opacity 0.3s var(--ease-out), visibility 0s 0.3s, content-visibility 0s 0.3s allow-discrete;
   }
-  .island[data-open='true'] .island__panel { opacity: 1; pointer-events: auto; visibility: visible; transition: opacity 0.4s var(--ease-out) 0.1s; }
+  .island[data-open='true'] .island__panel { opacity: 1; pointer-events: auto; visibility: visible; content-visibility: visible; transition: opacity 0.4s var(--ease-out) 0.1s; }
   .menu { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; }
   .menu__k { display: flex; justify-content: space-between; padding: 12px 10px 6px; color: rgb(236 236 233 / 0.45); border-bottom: 1px solid rgb(236 236 233 / 0.1); margin-bottom: 4px; }
   .menu__list { display: grid; }
@@ -247,7 +250,7 @@ const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
   .menu__name { transition: translate 0.5s var(--ease-out); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .menu__n, .menu__cat { color: rgb(236 236 233 / 0.45); }
   .menu__glyph { display: grid; place-items: center; color: #ecece9; }
-  .menu__link[aria-current='true'] .menu__n::before { content: '•'; margin-right: 2px; }
+  .menu__link[aria-current='page'] .menu__n::before { content: '•'; margin-right: 2px; }
 
   .menu__cards { position: relative; margin-top: 12px; border-radius: 18px; overflow: hidden; background: #1c1c20; min-height: 300px; }
   .menu__card { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr; align-content: start; margin: 0; background: var(--card-bg, #1c1c20); color: var(--card-ink, #ecece9);
@@ -255,8 +258,8 @@ const { label = 'Oblune Studio', lit = 0.75 } = Astro.props;
   .menu__card[data-on='true'] { clip-path: inset(0 0 0 0); z-index: 1; }
   /* the stills are 16:10 compositions on the day surface: shown whole, on that surface, never cropped to fit */
   .menu__card-img { position: relative; overflow: hidden; aspect-ratio: 1400 / 875; margin: 8px 8px 0; border-radius: 12px; background: #e9e9e6; }
-  .menu__card-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.14); transition: transform 1.2s var(--ease-out); }
-  .menu__card[data-on='true'] .menu__card-img img { transform: scale(1.04); }
+  .menu__card-img :global(img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.14); transition: transform 1.2s var(--ease-out); }
+  .menu__card[data-on='true'] .menu__card-img :global(img) { transform: scale(1.04); }
   .menu__card figcaption { display: grid; align-content: start; gap: 6px; padding: 16px 18px 18px; }
   .menu__card-t { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
   .menu__card-x { font-size: 13px; line-height: 1.35; opacity: 0.75; }

@@ -11,7 +11,7 @@ const stripLab = {
       }
       const assets = new URL('_astro/', dir);
       for (const f of await readdir(assets)) {
-        if (/^(stage|emblem)[.-]/.test(f)) await rm(new URL(f, assets));
+        if (/^(stage|emblem)\.astro_/.test(f)) await rm(new URL(f, assets));
       }
     },
   },
